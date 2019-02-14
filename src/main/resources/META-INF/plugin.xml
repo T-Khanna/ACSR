@@ -20,12 +20,10 @@
 
     <actions>
         <!-- Add your actions here -->
-        <group id="MyPlugin.TopMenu"
-               text="_MyPlugin"
-               description="MyPlugin Toolbar Menu">
-            <add-to-group group-id="MainMenu" anchor="last"/>
-            <action id="MyPlugin.TestMenu" class="actions.MyAction" text="MyPlugin" description="MyPlugin">
-            </action>
-        </group>
+        <action id="address-cs" class="actions.AddressCodeSmellsAction" text="Detect/Address Code Smells..."
+                description="Analyze code, detect and refactor identified code smells">
+            <add-to-group group-id="RefactoringMenu" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt A"/>
+        </action>
     </actions>
 </idea-plugin>
