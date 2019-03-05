@@ -32,14 +32,14 @@ public class AddressCodeSmellsAction extends AnAction {
             return;
         }
 
-        List<PsiElement> suspectElements = analyzeCode(psifile);
+        List<PsiElement> suspectElements = detectCodeSmells(psifile);
 
         for (PsiElement element : suspectElements) {
             // Can get start offset with element.getTextOffset() and then
             // add length of element.getText() to get end offset
             NotificationGroup notifier = new NotificationGroup("acsr", NotificationDisplayType.BALLOON, true);
             int lineNum = StringUtil.offsetToLineNumber(psifile.getText(), element.getTextOffset()) + 1;
-            String info = "For loop at line " + lineNum + " may be an instance of a Slow Loop code smell. " +
+            String info = "For loop at line " + lineNum + " is an instance of a Slow Loop code smell. " +
                     "As per the official documentation, it is recommended to use for-each syntax instead";
             notifier.createNotification(
                     "Possible Code Smell",
@@ -49,14 +49,9 @@ public class AddressCodeSmellsAction extends AnAction {
                     ).notify(e.getProject());
         }
 
-        detectCodeSmells(suspectElements);
     }
 
-    private void detectCodeSmells(List<PsiElement> suspectElements) {
-        //TODO: Implement
-    }
-
-    private List<PsiElement> analyzeCode(PsiFile psifile) {
+    private List<PsiElement> detectCodeSmells(PsiFile psifile) {
         CodeVisitor visitor = new CodeVisitor();
         psifile.accept(visitor);
         return visitor.getFlaggedElements();
