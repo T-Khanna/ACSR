@@ -2,6 +2,7 @@ package visitors;
 
 import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
+import utils.ForLoopUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +20,7 @@ public class CodeVisitor extends JavaRecursiveElementWalkingVisitor {
         super.visitField(field);
         String name = field.getName();
         PsiType type = field.getType();
-        if (isValidForEach(type)) {
+        if (ForLoopUtils.isValidForEachType(type)) {
             System.out.println(name + ", " + type);
         }
     }
@@ -31,7 +32,7 @@ public class CodeVisitor extends JavaRecursiveElementWalkingVisitor {
             if (elem instanceof PsiLocalVariable) {
                 PsiLocalVariable var = (PsiLocalVariable) elem;
                 PsiType type = var.getType();
-                if (isValidForEach(type)) {
+                if (ForLoopUtils.isValidForEachType(type)) {
                     System.out.println(var.getName() + ", " + type);
                 }
             }
@@ -43,45 +44,9 @@ public class CodeVisitor extends JavaRecursiveElementWalkingVisitor {
         super.visitAssignmentExpression(expression);
         PsiExpression var = expression.getLExpression();
         PsiType type = var.getType();
-        if (isValidForEach(type)) {
+        if (ForLoopUtils.isValidForEachType(type)) {
             System.out.println(var.getText() + ", " + type);
         }
-    }
-
-    private boolean isValidForEach(PsiType type) {
-        return type instanceof PsiArrayType ||
-               type instanceof PsiClassType && isInstanceOfIterable((PsiClassType) type);
-    }
-
-    private boolean isInstanceOfIterable(PsiClassType classType) {
-        PsiClass instance = classType.resolve();
-        if (instance == null) {
-            return false;
-        }
-        if (instance.isInterface()) {
-            // Base case: Interface is Iterable
-            if (classType.getClassName().equals("Iterable")) {
-                return true;
-            }
-        } else {
-            // Check if class implements an interface that is/extends Iterable
-            for (PsiClassType implementType : instance.getImplementsListTypes()) {
-                if (isInstanceOfIterable(implementType)) {
-                    return true;
-                }
-            }
-        }
-        // Check for the following scenarios:
-        // 1. The current interface extends an interface that is/extends Iterable
-        // 2. The current class extends a class that implements an interface that is/extends Iterable
-        for (PsiClassType extendType : instance.getExtendsListTypes()) {
-            if (isInstanceOfIterable(extendType)) {
-                return true;
-            }
-        }
-        // At this point all possible checks have been done, and the type is not an instance
-        // of Iterable, so return false here
-        return false;
     }
 
     @Override
