@@ -5,7 +5,6 @@ import com.intellij.notification.NotificationGroup;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.LangDataKeys;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
@@ -15,6 +14,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiForStatement;
+import refactoring.RefactorSlowLoop;
 import visitors.CodeVisitor;
 
 import java.util.List;
@@ -25,7 +26,7 @@ public class AddressCodeSmellsAction extends AnAction {
     public void actionPerformed(AnActionEvent e) {
         // Get all the required data from data keys
 //        final Editor editor = e.getRequiredData(CommonDataKeys.EDITOR);
-//        final Project project = e.getProject();
+        final Project project = e.getProject();
         final PsiFile psifile = e.getData(LangDataKeys.PSI_FILE);
         if (psifile == null) {
             System.err.println("Psifile returned null");
@@ -39,14 +40,20 @@ public class AddressCodeSmellsAction extends AnAction {
             // add length of element.getText() to get end offset
             NotificationGroup notifier = new NotificationGroup("acsr", NotificationDisplayType.BALLOON, true);
             int lineNum = StringUtil.offsetToLineNumber(psifile.getText(), element.getTextOffset()) + 1;
-            String info = "For loop at line " + lineNum + " is an instance of a Slow Loop code smell. " +
-                    "As per the official documentation, it is recommended to use for-each syntax instead";
-            notifier.createNotification(
-                    "Possible Code Smell",
-                    info,
-                    NotificationType.INFORMATION,
-                    null
-                    ).notify(e.getProject());
+
+            // Check if it's an instance of a Slow Loop code smell
+            if (element instanceof PsiForStatement) {
+                PsiForStatement forStatement = (PsiForStatement) element;
+                String info = "For loop at line " + lineNum + " is an instance of a Slow Loop code smell. " +
+                        "As per the official documentation, it is recommended to use for-each syntax instead";
+                notifier.createNotification(
+                        "Possible Code Smell",
+                        info,
+                        NotificationType.INFORMATION,
+                        null
+                ).notify(e.getProject());
+                RefactorSlowLoop.refactorSlowLoop(forStatement, project);
+            }
         }
 
     }
