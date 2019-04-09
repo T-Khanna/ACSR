@@ -8,13 +8,10 @@ import com.intellij.psi.PsiType;
 import com.intellij.psi.codeStyle.JavaCodeStyleManager;
 import com.intellij.psi.codeStyle.SuggestedNameInfo;
 import com.intellij.psi.codeStyle.VariableKind;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * A convenience helper class to generate unique name for new variable. To use it, call several by* methods in chain, then call
@@ -22,20 +19,22 @@ import java.util.Set;
  * It's recommended to have at least one {@link #byName(String...)} call with at least one non-null candidate as the last resort.
  */
 public final class VariableNameGenerator {
-    private final @NotNull JavaCodeStyleManager myManager;
-    private final @NotNull PsiElement myContext;
-    private final @NotNull VariableKind myKind;
-    private final Set<String> candidates = new LinkedHashSet<>();
+
+    private final JavaCodeStyleManager manager;
+    private final PsiElement context;
+    private final VariableKind kind;
+    private final List<String> candidates;
 
     /**
      * Constructs a new generator
      * @param context the place where new variable will be declared
      * @param kind kind of variable to generate
      */
-    public VariableNameGenerator(@NotNull PsiElement context, @NotNull VariableKind kind) {
-        myManager = JavaCodeStyleManager.getInstance(context.getProject());
-        myContext = context;
-        myKind = kind;
+    public VariableNameGenerator(PsiElement context, VariableKind kind) {
+        this.manager = JavaCodeStyleManager.getInstance(context.getProject());
+        this.context = context;
+        this.kind = kind;
+        this.candidates = new LinkedList<>();
     }
 
     /**
@@ -43,10 +42,10 @@ public final class VariableNameGenerator {
      * @param type type of newly generated variable
      * @return this generator
      */
-    public VariableNameGenerator byType(@Nullable PsiType type) {
+    public VariableNameGenerator byType(PsiType type) {
         if (type != null) {
-            SuggestedNameInfo info = myManager.suggestVariableName(myKind, null, null, type, true);
-            candidates.addAll(Arrays.asList(info.names));
+            SuggestedNameInfo info = this.manager.suggestVariableName(this.kind, null, null, type, true);
+            this.candidates.addAll(Arrays.asList(info.names));
         }
         return this;
     }
@@ -56,10 +55,10 @@ public final class VariableNameGenerator {
      * @param expression expression which value will be stored to the new variable
      * @return this generator
      */
-    public VariableNameGenerator byExpression(@Nullable PsiExpression expression) {
+    public VariableNameGenerator byExpression(PsiExpression expression) {
         if (expression != null) {
-            SuggestedNameInfo info = myManager.suggestVariableName(myKind, null, expression, null, true);
-            candidates.addAll(Arrays.asList(info.names));
+            SuggestedNameInfo info = this.manager.suggestVariableName(this.kind, null, expression, null, true);
+            this.candidates.addAll(Arrays.asList(info.names));
         }
         return this;
     }
@@ -69,9 +68,10 @@ public final class VariableNameGenerator {
      * @param name of the collection/array which element is represented by newly generated variable
      * @return this generator
      */
-    public VariableNameGenerator byCollectionName(@Nullable String name) {
+    public VariableNameGenerator byCollectionName(String name) {
         if (name != null) {
-            PsiExpression expr = JavaPsiFacade.getElementFactory(myContext.getProject()).createExpressionFromText(name + "[0]", myContext);
+            String ref = name + "[0]";
+            PsiExpression expr = JavaPsiFacade.getElementFactory(this.context.getProject()).createExpressionFromText(ref, this.context);
             byExpression(expr);
         }
         return this;
@@ -85,8 +85,8 @@ public final class VariableNameGenerator {
     public VariableNameGenerator byName(String... names) {
         for (String name : names) {
             if (name != null) {
-                SuggestedNameInfo info = myManager.suggestVariableName(myKind, name, null, null, true);
-                candidates.addAll(Arrays.asList(info.names));
+                SuggestedNameInfo info = this.manager.suggestVariableName(this.kind, name, null, null, true);
+                this.candidates.addAll(Arrays.asList(info.names));
             }
         }
         return this;
@@ -97,14 +97,12 @@ public final class VariableNameGenerator {
      * @param lookForward whether further conflicting declarations should be considered
      * @return a generated variable name
      */
-    @NotNull
     public String generate(boolean lookForward) {
-        String suffixed = null;
-        for (String candidate : candidates.isEmpty() ? Collections.singleton("v") : candidates) {
-            String name = myManager.suggestUniqueVariableName(candidate, myContext, lookForward);
-            if (name.equals(candidate)) return name;
-            if (suffixed == null) {
-                suffixed = name;
+        String suffixed = this.candidates.isEmpty() ? "v" : this.candidates.get(0);
+        for (String candidate : this.candidates) {
+            String name = this.manager.suggestUniqueVariableName(candidate, this.context, lookForward);
+            if (name.equals(candidate)) {
+                return name;
             }
         }
         return suffixed;

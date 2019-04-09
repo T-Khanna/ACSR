@@ -1,5 +1,7 @@
 package actions;
 
+import codesmell.CodeSmell;
+import codesmell.slowloop.SlowLoopCodeSmell;
 import com.intellij.notification.NotificationDisplayType;
 import com.intellij.notification.NotificationGroup;
 import com.intellij.notification.NotificationType;
@@ -7,15 +9,11 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.LangDataKeys;
 import com.intellij.openapi.command.WriteCommandAction;
-import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiForStatement;
-import refactoring.RefactorSlowLoop;
+import com.siyeh.ig.psiutils.CommentTracker;
 import visitors.CodeVisitor;
 
 import java.util.List;
@@ -25,7 +23,6 @@ public class AddressCodeSmellsAction extends AnAction {
     @Override
     public void actionPerformed(AnActionEvent e) {
         // Get all the required data from data keys
-//        final Editor editor = e.getRequiredData(CommonDataKeys.EDITOR);
         final Project project = e.getProject();
         final PsiFile psifile = e.getData(LangDataKeys.PSI_FILE);
         if (psifile == null) {
@@ -33,51 +30,42 @@ public class AddressCodeSmellsAction extends AnAction {
             return;
         }
 
-        List<PsiElement> suspectElements = detectCodeSmells(psifile);
+        List<CodeSmell> identifiedCodeSmells = detectCodeSmells(psifile);
 
-        for (PsiElement element : suspectElements) {
-            // Can get start offset with element.getTextOffset() and then
-            // add length of element.getText() to get end offset
-            NotificationGroup notifier = new NotificationGroup("acsr", NotificationDisplayType.BALLOON, true);
-            int lineNum = StringUtil.offsetToLineNumber(psifile.getText(), element.getTextOffset()) + 1;
-
-            // Check if it's an instance of a Slow Loop code smell
-            if (element instanceof PsiForStatement) {
-                PsiForStatement forStatement = (PsiForStatement) element;
-                String info = "For loop at line " + lineNum + " is an instance of a Slow Loop code smell. " +
-                        "As per the official documentation, it is recommended to use for-each syntax instead";
+        for (CodeSmell codeSmell : identifiedCodeSmells) {
+            // Check if code smell is Slow Loop
+            if (codeSmell instanceof SlowLoopCodeSmell) {
+                PsiElement element = codeSmell.getAssociatedPsiElement();
+                NotificationGroup notifier = new NotificationGroup("acsr", NotificationDisplayType.BALLOON, true);
+                // Can get start offset with element.getTextOffset() and then
+                // add length of element.getText() to get end offset
+                int lineNum = StringUtil.offsetToLineNumber(psifile.getText(), element.getTextOffset()) + 1;
+                String info = codeSmell.getInformativeMessage(lineNum);
                 notifier.createNotification(
-                        "Possible Code Smell",
+                        "Code Smell",
                         info,
                         NotificationType.INFORMATION,
                         null
-                ).notify(e.getProject());
-                RefactorSlowLoop.refactorSlowLoop(forStatement, project);
+                ).notify(project);
+
+                SlowLoopCodeSmell slowLoop = (SlowLoopCodeSmell) codeSmell;
+                String refactoredText = slowLoop.getRefactoredCode();
+                updateStatement(element, project, slowLoop.getCommentTracker(), refactoredText);
             }
         }
 
     }
 
-    private List<PsiElement> detectCodeSmells(PsiFile psifile) {
-        CodeVisitor visitor = new CodeVisitor();
-        psifile.accept(visitor);
-        return visitor.getFlaggedElements();
+    private static void updateStatement(PsiElement element, Project project, CommentTracker ct, String newText) {
+        WriteCommandAction.runWriteCommandAction(project, () -> {
+            ct.replaceAndRestoreComments(element, newText);
+        });
     }
 
-    private void replaceSelectedText(Editor editor, Project project, String replacement) {
-        // Access document, caret, and selection
-        final Document document = editor.getDocument();
-        final SelectionModel selectionModel = editor.getSelectionModel();
-
-        final int start = selectionModel.getSelectionStart();
-        final int end = selectionModel.getSelectionEnd();
-
-        // Making the replacement
-        WriteCommandAction.runWriteCommandAction(project,
-                () -> document.replaceString(start, end, replacement)
-        );
-
-        selectionModel.removeSelection();
+    private static List<CodeSmell> detectCodeSmells(PsiFile psifile) {
+        CodeVisitor visitor = new CodeVisitor();
+        psifile.accept(visitor);
+        return visitor.getIdentifiedCodeSmells();
     }
 
 }

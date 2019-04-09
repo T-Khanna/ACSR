@@ -1,5 +1,7 @@
 package visitors;
 
+import codesmell.CodeSmell;
+import codesmell.slowloop.SlowLoopCodeSmell;
 import com.intellij.psi.*;
 import detection.DetectSlowLoop;
 
@@ -8,56 +10,23 @@ import java.util.List;
 
 public class CodeVisitor extends JavaRecursiveElementWalkingVisitor {
 
-    private final List<PsiElement> elementsToEvaluate;
+    private final List<CodeSmell> identifiedCodeSmells;
 
     public CodeVisitor() {
-        this.elementsToEvaluate = new ArrayList<>();
+        this.identifiedCodeSmells = new ArrayList<>();
     }
-
-//    @Override
-//    public void visitField(PsiField field) {
-//        super.visitField(field);
-//        String name = field.getName();
-//        PsiType type = field.getType();
-//        if (DetectSlowLoop.isValidForEachType(type)) {
-//            System.out.println(name + ", " + type);
-//        }
-//    }
-//
-//    @Override
-//    public void visitDeclarationStatement(PsiDeclarationStatement statement) {
-//        super.visitDeclarationStatement(statement);
-//        for (PsiElement elem : statement.getDeclaredElements()) {
-//            if (elem instanceof PsiLocalVariable) {
-//                PsiLocalVariable var = (PsiLocalVariable) elem;
-//                PsiType type = var.getType();
-//                if (DetectSlowLoop.isValidForEachType(type)) {
-//                    System.out.println(var.getName() + ", " + type);
-//                }
-//            }
-//        }
-//    }
-//
-//    @Override
-//    public void visitAssignmentExpression(PsiAssignmentExpression expression) {
-//        super.visitAssignmentExpression(expression);
-//        PsiExpression var = expression.getLExpression();
-//        PsiType type = var.getType();
-//        if (DetectSlowLoop.isValidForEachType(type)) {
-//            System.out.println(var.getText() + ", " + type);
-//        }
-//    }
 
     @Override
     public void visitForStatement(PsiForStatement forStatement) {
-        if (DetectSlowLoop.isForLoopReplaceableWithForEach(forStatement)) {
-            this.elementsToEvaluate.add(forStatement);
+        SlowLoopCodeSmell possibleSlowLoop = DetectSlowLoop.checkForSlowLoop(forStatement);
+        if (possibleSlowLoop != null) {
+            this.identifiedCodeSmells.add(possibleSlowLoop);
         }
         super.visitForStatement(forStatement);
     }
 
-    public List<PsiElement> getFlaggedElements() {
-        return this.elementsToEvaluate;
+    public List<CodeSmell> getIdentifiedCodeSmells() {
+        return this.identifiedCodeSmells;
     }
 
 }

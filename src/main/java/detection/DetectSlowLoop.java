@@ -1,5 +1,9 @@
 package detection;
 
+import codesmell.slowloop.ArraySlowLoopCodeSmell;
+import codesmell.slowloop.CollectionSlowLoopCodeSmell;
+import codesmell.slowloop.IndexedListSlowLoopCodeSmell;
+import codesmell.slowloop.SlowLoopCodeSmell;
 import com.intellij.psi.*;
 import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.util.InheritanceUtil;
@@ -17,15 +21,27 @@ import visitors.VariableOnlyUsedAsListIndexVisitor;
 
 public class DetectSlowLoop {
 
-    public static boolean isForLoopReplaceableWithForEach(PsiForStatement forStatement) {
-        return isCollectionLoopStatement(forStatement, false) ||
-               isIndexedListLoopStatement(forStatement, false) ||
-               isArrayLoopStatement(forStatement);
+    private static final boolean IGNORE_UNTYPED_COLLECTIONS = false;
+
+    public static SlowLoopCodeSmell checkForSlowLoop(PsiForStatement forStatement) {
+        // Check if its a collection for loop statement
+        if (isCollectionLoopStatement(forStatement)) {
+            return new CollectionSlowLoopCodeSmell(forStatement);
+        }
+        // Check if its an indexed list for loop statement
+        if (isIndexedForStatement(forStatement, false)) {
+            return new IndexedListSlowLoopCodeSmell(forStatement);
+        }
+        // Check if its an array for loop statement
+        if (isIndexedForStatement(forStatement, true)) {
+            return new ArraySlowLoopCodeSmell(forStatement);
+        }
+        return null;
     }
 
-    public static boolean isCollectionLoopStatement(PsiForStatement forStatement, boolean ignoreUntypedCollections) {
+    private static boolean isCollectionLoopStatement(PsiForStatement forStatement) {
         PsiStatement initialization = forStatement.getInitialization();
-        PsiVariable iterableRef = getIterableVariable(initialization, ignoreUntypedCollections);
+        PsiVariable iterableRef = getIterableVariable(initialization, IGNORE_UNTYPED_COLLECTIONS);
         if (iterableRef == null) {
             return false;
         }
@@ -44,63 +60,8 @@ public class DetectSlowLoop {
         return hasSimpleNextCall(iterableRef, body);
     }
 
-    public static boolean isIndexedListLoopStatement(PsiForStatement forStatement, boolean ignoreUntypedCollections) {
-        final PsiStatement initialization = forStatement.getInitialization();
-        if (!(initialization instanceof PsiDeclarationStatement)) {
-            return false;
-        }
-        final PsiDeclarationStatement declaration = (PsiDeclarationStatement)initialization;
-        final PsiElement[] declaredElements = declaration.getDeclaredElements();
-        final PsiElement secondDeclaredElement;
-        if (declaredElements.length == 1) {
-            secondDeclaredElement = null;
-        }
-        else if (declaredElements.length == 2) {
-            secondDeclaredElement = declaredElements[1];
-        }
-        else {
-            return false;
-        }
-        final PsiElement declaredElement = declaredElements[0];
-        if (!(declaredElement instanceof PsiVariable)) {
-            return false;
-        }
-        final PsiVariable indexVariable = (PsiVariable)declaredElement;
-        final PsiExpression initialValue = indexVariable.getInitializer();
-        final Object constant = ExpressionUtils.computeConstantExpression(initialValue);
-        if (!(constant instanceof Number)) {
-            return false;
-        }
-        final Number number = (Number)constant;
-        if (number.intValue() != 0) {
-            return false;
-        }
-        final PsiExpression condition = forStatement.getCondition();
-        final Holder collectionHolder = getCollectionFromSizeComparison(condition, indexVariable, secondDeclaredElement);
-        if (collectionHolder == null) {
-            return false;
-        }
-        final PsiStatement update = forStatement.getUpdate();
-        if (!VariableAccessUtils.variableIsIncremented(indexVariable, update)) {
-            return false;
-        }
-        final PsiStatement body = forStatement.getBody();
-        if (!isIndexVariableOnlyUsedAsListIndex(collectionHolder, indexVariable, body)) {
-            return false;
-        }
-        if (collectionHolder != Holder.DUMMY) {
-            final PsiVariable collection = collectionHolder.getVariable();
-            final PsiClassType collectionType = (PsiClassType)collection.getType();
-            final PsiType[] parameters = collectionType.getParameters();
-            if (ignoreUntypedCollections && parameters.length == 0) {
-                return false;
-            }
-            return !VariableAccessUtils.variableIsAssigned(collection, body);
-        }
-        return true;
-    }
 
-    public static boolean isArrayLoopStatement(PsiForStatement forStatement) {
+    private static boolean isIndexedForStatement(PsiForStatement forStatement, boolean isArray) {
         final PsiStatement initialization = forStatement.getInitialization();
         if (!(initialization instanceof PsiDeclarationStatement)) {
             return false;
@@ -129,6 +90,41 @@ public class DetectSlowLoop {
         if (initialIndexValue != 0) {
             return false;
         }
+
+        if (isArray) {
+            return isArrayLoopStatement(forStatement, indexVariable, secondDeclaredElement);
+        } else {
+            return isIndexedListLoopStatement(forStatement, indexVariable, secondDeclaredElement);
+        }
+    }
+
+    private static boolean isIndexedListLoopStatement(PsiForStatement forStatement, PsiVariable indexVariable, PsiElement secondDeclaredElement) {
+        final PsiExpression condition = forStatement.getCondition();
+        final Holder collectionHolder = getCollectionFromSizeComparison(condition, indexVariable, secondDeclaredElement);
+        if (collectionHolder == null) {
+            return false;
+        }
+        final PsiStatement update = forStatement.getUpdate();
+        if (!VariableAccessUtils.variableIsIncremented(indexVariable, update)) {
+            return false;
+        }
+        final PsiStatement body = forStatement.getBody();
+        if (!isIndexVariableOnlyUsedAsListIndex(collectionHolder, indexVariable, body)) {
+            return false;
+        }
+        if (collectionHolder != Holder.DUMMY) {
+            final PsiVariable collection = collectionHolder.getVariable();
+            final PsiClassType collectionType = (PsiClassType)collection.getType();
+            final PsiType[] parameters = collectionType.getParameters();
+            if (IGNORE_UNTYPED_COLLECTIONS && parameters.length == 0) {
+                return false;
+            }
+            return !VariableAccessUtils.variableIsAssigned(collection, body);
+        }
+        return true;
+    }
+
+    private static boolean isArrayLoopStatement(PsiForStatement forStatement, PsiVariable indexVariable, PsiElement secondDeclaredElement) {
         final PsiStatement update = forStatement.getUpdate();
         if (!VariableAccessUtils.variableIsIncremented(indexVariable, update)) {
             return false;
@@ -180,7 +176,7 @@ public class DetectSlowLoop {
     private static Holder getCollectionFromListMethodCall(PsiExpression expression, String methodName, PsiElement secondDeclaredElement) {
         expression = ParenthesesUtils.stripParentheses(expression);
         if (expression instanceof PsiReferenceExpression) {
-            final PsiReferenceExpression referenceExpression = (PsiReferenceExpression)expression;
+            final PsiReferenceExpression referenceExpression = (PsiReferenceExpression) expression;
             final PsiElement target = referenceExpression.resolve();
             if (secondDeclaredElement != null && !secondDeclaredElement.equals(target)) {
                 return null;
@@ -197,8 +193,7 @@ public class DetectSlowLoop {
                 return null;
             }
             expression = ParenthesesUtils.stripParentheses(variable.getInitializer());
-        }
-        else if (secondDeclaredElement !=  null) {
+        } else if (secondDeclaredElement !=  null) {
             return null;
         }
         if (!(expression instanceof PsiMethodCallExpression)) {

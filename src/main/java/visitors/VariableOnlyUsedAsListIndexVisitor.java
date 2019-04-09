@@ -3,11 +3,9 @@ package visitors;
 import com.intellij.psi.*;
 import com.intellij.psi.util.InheritanceUtil;
 import com.intellij.psi.util.PsiTreeUtil;
-import com.siyeh.HardcodedMethodConstants;
-import com.siyeh.ig.psiutils.ExpressionUtils;
 import com.siyeh.ig.psiutils.ParenthesesUtils;
 import org.jetbrains.annotations.NotNull;
-import refactoring.RefactorSlowLoop;
+import utils.RefactorSlowLoopUtils;
 import utils.Holder;
 
 public class VariableOnlyUsedAsListIndexVisitor extends JavaRecursiveElementWalkingVisitor {
@@ -122,7 +120,7 @@ public class VariableOnlyUsedAsListIndexVisitor extends JavaRecursiveElementWalk
                     (qualifierExpression == null ||
                             qualifierExpression instanceof PsiThisExpression ||
                             qualifierExpression instanceof PsiSuperExpression)) {
-                return RefactorSlowLoop.expressionIsListGetLookup(methodCallExpression);
+                return RefactorSlowLoopUtils.expressionIsListGetLookup(methodCallExpression);
             }
             return false;
         }
@@ -135,7 +133,7 @@ public class VariableOnlyUsedAsListIndexVisitor extends JavaRecursiveElementWalk
         if (collection == Holder.DUMMY || !collection.getVariable().equals(target)) {
             return false;
         }
-        return RefactorSlowLoop.expressionIsListGetLookup(methodCallExpression);
+        return RefactorSlowLoopUtils.expressionIsListGetLookup(methodCallExpression);
     }
 
 

@@ -1,7 +1,6 @@
 package utils;
 
 import com.intellij.psi.PsiVariable;
-import org.jetbrains.annotations.NotNull;
 
 public class Holder {
 
@@ -9,16 +8,16 @@ public class Holder {
 
     private final PsiVariable variable;
 
-    public Holder(@NotNull PsiVariable variable) {
+    public Holder(PsiVariable variable) {
         this.variable = variable;
     }
 
     private Holder() {
-        variable = null;
+        this.variable = null;
     }
 
     public PsiVariable getVariable() {
-        return variable;
+        return this.variable;
     }
 
 }
