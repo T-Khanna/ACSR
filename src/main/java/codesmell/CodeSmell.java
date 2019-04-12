@@ -1,6 +1,7 @@
 package codesmell;
 
 import com.intellij.psi.PsiElement;
+import com.siyeh.ig.psiutils.CommentTracker;
 
 public interface CodeSmell {
 
@@ -9,5 +10,7 @@ public interface CodeSmell {
     String getRefactoredCode();
 
     PsiElement getAssociatedPsiElement();
+
+    CommentTracker getCommentTracker();
 
 }
