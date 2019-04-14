@@ -3,6 +3,7 @@ package codesmell.slowloop;
 import codesmell.AbstractCodeSmell;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiForStatement;
+import utils.Constants;
 
 public abstract class SlowLoopCodeSmell extends AbstractCodeSmell {
 
@@ -22,9 +23,13 @@ public abstract class SlowLoopCodeSmell extends AbstractCodeSmell {
         sb.append(' ');
         sb.append("is an instance of a Slow Loop code smell.");
         sb.append('\n');
-        sb.append("As per the official documentation, it is recommended to use for-each syntax instead.");
+        sb.append("As per the <a href=\"");
+        sb.append(Constants.PERF_TIPS_URL);
+        sb.append("\">official documentation</a>, it is recommended to use for-each syntax instead.");
         sb.append('\n');
-        sb.append("Please click <a href=\"x\" target=\"blank\">here</a> to refactor this code smell.");
+        sb.append("Please click <a href=\"");
+        sb.append(Constants.REFACTOR_TRIGGER);
+        sb.append("\">here</a> to refactor this code smell.");
         return sb.toString();
     }
 
