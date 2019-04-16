@@ -2,18 +2,19 @@ package visitors;
 
 import codesmell.CodeSmell;
 import codesmell.slowloop.SlowLoopCodeSmell;
-import com.intellij.psi.*;
+import com.intellij.psi.JavaRecursiveElementWalkingVisitor;
+import com.intellij.psi.PsiForStatement;
 import detection.DetectSlowLoop;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class CodeVisitor extends JavaRecursiveElementWalkingVisitor {
 
-    private final List<CodeSmell> identifiedCodeSmells;
+    private final Set<CodeSmell> identifiedCodeSmells;
 
     public CodeVisitor() {
-        this.identifiedCodeSmells = new ArrayList<>();
+        this.identifiedCodeSmells = new LinkedHashSet<>();
     }
 
     @Override
@@ -25,7 +26,7 @@ public class CodeVisitor extends JavaRecursiveElementWalkingVisitor {
         super.visitForStatement(forStatement);
     }
 
-    public List<CodeSmell> getIdentifiedCodeSmells() {
+    public Set<CodeSmell> getIdentifiedCodeSmells() {
         return this.identifiedCodeSmells;
     }
 

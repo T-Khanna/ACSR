@@ -16,6 +16,7 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <!-- Add your extensions here -->
+        <typedHandler implementation="actions.PreemptiveCodeSmellDelegate" id="preemptive-codesmells"/>
     </extensions>
 
     <actions>

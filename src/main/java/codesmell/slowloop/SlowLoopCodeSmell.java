@@ -38,4 +38,26 @@ public abstract class SlowLoopCodeSmell extends AbstractCodeSmell {
         return this.forStatement;
     }
 
+    @Override
+    public String toString() {
+        return this.forStatement.getText();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof SlowLoopCodeSmell)) {
+            return false;
+        }
+        SlowLoopCodeSmell that = (SlowLoopCodeSmell) obj;
+        String thisText = this.forStatement.getText().replaceAll("\\s+", "");
+        String thatText = that.forStatement.getText().replaceAll("\\s+", "");
+        return thisText.hashCode() == thatText.hashCode() && thisText.equals(thatText);
+    }
+
+    @Override
+    public int hashCode() {
+        String thisText = this.forStatement.getText().replaceAll("\\s+", "");
+        return thisText.hashCode();
+    }
+
 }

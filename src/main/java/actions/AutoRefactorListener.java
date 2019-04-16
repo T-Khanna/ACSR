@@ -1,5 +1,6 @@
-package codesmell;
+package actions;
 
+import codesmell.CodeSmell;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationListener;
@@ -34,12 +35,10 @@ public class AutoRefactorListener implements NotificationListener {
         }
     }
 
-
     private static void updateStatement(PsiElement element, Project project, CommentTracker ct, String newText) {
         WriteCommandAction.runWriteCommandAction(project, () -> {
             ct.replaceAndRestoreComments(element, newText);
         });
     }
-
 
 }

@@ -1,6 +1,5 @@
 package actions;
 
-import codesmell.AutoRefactorListener;
 import codesmell.CodeSmell;
 import com.intellij.notification.NotificationDisplayType;
 import com.intellij.notification.NotificationGroup;
@@ -14,7 +13,7 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import visitors.CodeVisitor;
 
-import java.util.List;
+import java.util.Set;
 
 public class AddressCodeSmellsAction extends AnAction {
 
@@ -23,12 +22,14 @@ public class AddressCodeSmellsAction extends AnAction {
         // Get all the required data from data keys
         final Project project = e.getProject();
         final PsiFile psifile = e.getData(LangDataKeys.PSI_FILE);
+
         if (psifile == null) {
             System.err.println("Psifile returned null");
             return;
         }
 
-        List<CodeSmell> identifiedCodeSmells = detectCodeSmells(psifile);
+        Set<CodeSmell> identifiedCodeSmells = detectCodeSmells(psifile);
+        PreemptiveCodeSmellDelegate.addIdentifiedCodeSmells(identifiedCodeSmells);
 
         for (CodeSmell codeSmell : identifiedCodeSmells) {
             PsiElement element = codeSmell.getAssociatedPsiElement();
@@ -47,7 +48,7 @@ public class AddressCodeSmellsAction extends AnAction {
 
     }
 
-    private static List<CodeSmell> detectCodeSmells(PsiFile psifile) {
+    private static Set<CodeSmell> detectCodeSmells(PsiFile psifile) {
         CodeVisitor visitor = new CodeVisitor();
         psifile.accept(visitor);
         return visitor.getIdentifiedCodeSmells();
