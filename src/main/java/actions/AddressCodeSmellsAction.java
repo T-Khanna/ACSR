@@ -29,14 +29,14 @@ public class AddressCodeSmellsAction extends AnAction {
         }
 
         Set<CodeSmell> identifiedCodeSmells = detectCodeSmells(psifile);
-        PreemptiveCodeSmellDelegate.addIdentifiedCodeSmells(identifiedCodeSmells);
+        CodeSmellAnnotator.addIdentifiedCodeSmells(identifiedCodeSmells);
 
         for (CodeSmell codeSmell : identifiedCodeSmells) {
             PsiElement element = codeSmell.getAssociatedPsiElement();
             NotificationGroup notifier = new NotificationGroup("acsr", NotificationDisplayType.BALLOON, true);
             // Can get start offset with element.getTextOffset() and then
             // add length of element.getText() to get end offset
-            int lineNum = StringUtil.offsetToLineNumber(psifile.getText(), element.getTextOffset()) + 1;
+            int lineNum = getLineNum(psifile, element);
             String info = codeSmell.getInformativeMessage(lineNum);
             notifier.createNotification(
                     "Code Smell",
@@ -46,6 +46,10 @@ public class AddressCodeSmellsAction extends AnAction {
             ).notify(project);
         }
 
+    }
+
+    private static int getLineNum(PsiFile psifile, PsiElement element) {
+        return StringUtil.offsetToLineNumber(psifile.getText(), element.getTextOffset()) + 1;
     }
 
     private static Set<CodeSmell> detectCodeSmells(PsiFile psifile) {

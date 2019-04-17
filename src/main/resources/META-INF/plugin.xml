@@ -16,7 +16,7 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <!-- Add your extensions here -->
-        <typedHandler implementation="actions.PreemptiveCodeSmellDelegate" id="preemptive-codesmells"/>
+        <annotator language="JAVA" implementationClass="actions.CodeSmellAnnotator"/>
     </extensions>
 
     <actions>

@@ -15,6 +15,11 @@ public abstract class SlowLoopCodeSmell extends AbstractCodeSmell {
     }
 
     @Override
+    public String getAnnotationMessage() {
+        return "Possible instance of Slow Loop code smell";
+    }
+
+    @Override
     public String getInformativeMessage(int lineNum) {
         StringBuilder sb = new StringBuilder();
         sb.append("For loop at line");

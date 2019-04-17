@@ -7,6 +7,8 @@ public interface CodeSmell {
 
     String getInformativeMessage(int lineNum);
 
+    String getAnnotationMessage();
+
     String getRefactoredCode();
 
     PsiElement getAssociatedPsiElement();
