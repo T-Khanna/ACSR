@@ -30,6 +30,7 @@ public class AddressCodeSmellsAction extends AnAction {
 
         Set<CodeSmell> identifiedCodeSmells = detectCodeSmells(psifile);
         CodeSmellAnnotator.addIdentifiedCodeSmells(identifiedCodeSmells);
+        CodeSmellAnnotator.enable();
 
         for (CodeSmell codeSmell : identifiedCodeSmells) {
             PsiElement element = codeSmell.getAssociatedPsiElement();

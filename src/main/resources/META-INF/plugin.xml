@@ -17,6 +17,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <!-- Add your extensions here -->
         <annotator language="JAVA" implementationClass="actions.CodeSmellAnnotator"/>
+        <additionalTextAttributes scheme="Default" file="colorSchemes/CodeSmellDefault.xml"/>
     </extensions>
 
     <actions>
