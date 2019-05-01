@@ -9,9 +9,9 @@ public interface CodeSmell {
 
     String getAnnotationMessage();
 
-    String getRefactoredCode();
-
     PsiElement getAssociatedPsiElement();
+
+    String getRefactoredCode();
 
     CommentTracker getCommentTracker();
 
