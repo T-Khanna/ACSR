@@ -14,13 +14,11 @@ repositories {
 
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
-//    implementation 'com.github.javaparser:javaparser-core:3.13.4'
-//    implementation 'com.github.javaparser:javaparser-symbol-solver-core:3.13.4'
 }
 
 intellij {
-    version '2018.2.7'
-    alternativeIdePath '/usr/local/android-studio/'
+    version '2018.3.4'
+    alternativeIdePath '/home/tanmay/Other/IDES/android-studio/'
 }
 patchPluginXml {
     changeNotes """
