@@ -13,37 +13,43 @@ import org.jetbrains.annotations.NotNull;
 import utils.Constants;
 
 import javax.swing.event.HyperlinkEvent;
+import java.util.LinkedList;
+import java.util.List;
 
 public class AutoRefactorListener implements NotificationListener {
 
     private Project project;
-    private CodeSmell codeSmell;
+    private List<CodeSmell> codeSmells = new LinkedList<>();
 
     public AutoRefactorListener(Project project, CodeSmell codeSmell) {
         this.project = project;
-        this.codeSmell = codeSmell;
+        this.codeSmells.add(codeSmell);
     }
+
+    public AutoRefactorListener(Project project, List<CodeSmell> codeSmells) {
+        this.project = project;
+        this.codeSmells = codeSmells;
+    }
+
 
     @Override
     public void hyperlinkUpdate(@NotNull Notification notification, @NotNull HyperlinkEvent event) {
         if (event.getDescription().equals(Constants.REFACTOR_TRIGGER)) {
-            PsiElement element = this.codeSmell.getAssociatedPsiElement();
-            CommentTracker ct = this.codeSmell.getCommentTracker();
-            String refactoredCode = this.codeSmell.getRefactoredCode();
-            updateStatement(element, this.project,  ct, refactoredCode);
+            WriteCommandAction.runWriteCommandAction(this.project, () -> {
+                for (CodeSmell codeSmell : this.codeSmells) {
+                    PsiElement element = codeSmell.getAssociatedPsiElement();
+                    CommentTracker ct = codeSmell.getCommentTracker();
+                    String newText = codeSmell.getRefactoredCode();
+                    ct.replaceAndRestoreComments(element, newText);
+                }
+            });
         } else if (event.getDescription().equals(Constants.NAVIGATE_TRIGGER)) {
-            PsiElement element = this.codeSmell.getAssociatedPsiElement();
+            PsiElement element = this.codeSmells.get(0).getAssociatedPsiElement();
             OpenFileDescriptor fileDescriptor = new OpenFileDescriptor(this.project, element.getContainingFile().getVirtualFile(), element.getTextOffset());
             fileDescriptor.navigate(true);
         } else {
             BrowserUtil.launchBrowser(event.getURL().toExternalForm());
         }
-    }
-
-    private static void updateStatement(PsiElement element, Project project, CommentTracker ct, String newText) {
-        WriteCommandAction.runWriteCommandAction(project, () -> {
-            ct.replaceAndRestoreComments(element, newText);
-        });
     }
 
 }
