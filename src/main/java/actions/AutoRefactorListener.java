@@ -5,6 +5,7 @@ import com.intellij.ide.BrowserUtil;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationListener;
 import com.intellij.openapi.command.WriteCommandAction;
+import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiElement;
 import com.siyeh.ig.psiutils.CommentTracker;
@@ -30,6 +31,10 @@ public class AutoRefactorListener implements NotificationListener {
             CommentTracker ct = this.codeSmell.getCommentTracker();
             String refactoredCode = this.codeSmell.getRefactoredCode();
             updateStatement(element, this.project,  ct, refactoredCode);
+        } else if (event.getDescription().equals(Constants.NAVIGATE_TRIGGER)) {
+            PsiElement element = this.codeSmell.getAssociatedPsiElement();
+            OpenFileDescriptor fileDescriptor = new OpenFileDescriptor(this.project, element.getContainingFile().getVirtualFile(), element.getTextOffset());
+            fileDescriptor.navigate(true);
         } else {
             BrowserUtil.launchBrowser(event.getURL().toExternalForm());
         }

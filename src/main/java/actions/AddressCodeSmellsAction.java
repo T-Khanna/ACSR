@@ -1,6 +1,8 @@
 package actions;
 
 import codesmell.CodeSmell;
+import com.intellij.codeInsight.daemon.NavigateAction;
+import com.intellij.debugger.actions.JumpToObjectAction;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.notification.NotificationDisplayType;
 import com.intellij.notification.NotificationGroup;
@@ -8,6 +10,8 @@ import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.LangDataKeys;
+import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -45,9 +49,13 @@ public class AddressCodeSmellsAction extends AnAction {
 
         for (PsiFile psiFile : files) {
             if (psiFile != null) {
-                identifiedCodeSmells.put(psiFile, detectCodeSmells(psiFile));
+                Set<CodeSmell> codeSmells = detectCodeSmells(psiFile);
+                identifiedCodeSmells.put(psiFile, codeSmells);
+                CodeSmellAnnotator.addIdentifiedCodeSmells(codeSmells);
             }
         }
+
+        CodeSmellAnnotator.enable();
 
         for (Map.Entry<PsiFile, Set<CodeSmell>> entry : identifiedCodeSmells.entrySet()) {
             PsiFile psiFile = entry.getKey();

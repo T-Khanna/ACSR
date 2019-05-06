@@ -24,9 +24,13 @@ public abstract class SlowLoopCodeSmell extends AbstractCodeSmell {
     public String getInformativeMessage(PsiFile psiFile) {
         int lineNum = getLineNum(psiFile, this.forStatement);
         StringBuilder sb = new StringBuilder();
+        sb.append("<a href=\"");
+        sb.append(Constants.NAVIGATE_TRIGGER);
+        sb.append("\">");
         sb.append("For loop at line");
         sb.append(' ');
         sb.append(lineNum);
+        sb.append("</a>");
         sb.append(' ');
         sb.append("is an instance of a Slow Loop code smell.");
         sb.append('\n');
@@ -34,7 +38,7 @@ public abstract class SlowLoopCodeSmell extends AbstractCodeSmell {
         sb.append(Constants.PERF_TIPS_URL);
         sb.append("\">official documentation</a>, it is recommended to use for-each syntax instead.");
         sb.append('\n');
-        sb.append("Please click <a href=\"");
+        sb.append("Click <a href=\"");
         sb.append(Constants.REFACTOR_TRIGGER);
         sb.append("\">here</a> to refactor this code smell.");
         return sb.toString();
