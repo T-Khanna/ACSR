@@ -1,6 +1,7 @@
 package actions;
 
 import codesmell.CodeSmell;
+import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.notification.NotificationDisplayType;
 import com.intellij.notification.NotificationGroup;
 import com.intellij.notification.NotificationType;
@@ -9,11 +10,17 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.LangDataKeys;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiManager;
+import com.intellij.psi.search.FileTypeIndex;
+import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.util.indexing.FileBasedIndex;
 import visitors.CodeVisitor;
 
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class AddressCodeSmellsAction extends AnAction {
 
@@ -21,36 +28,43 @@ public class AddressCodeSmellsAction extends AnAction {
     public void actionPerformed(AnActionEvent e) {
         // Get all the required data from data keys
         final Project project = e.getProject();
-        final PsiFile psifile = e.getData(LangDataKeys.PSI_FILE);
 
-        if (psifile == null) {
-            System.err.println("Psifile returned null");
+        if (project == null) {
+            System.err.println("ERROR: NULL PROJECT");
             return;
         }
 
-        Set<CodeSmell> identifiedCodeSmells = detectCodeSmells(psifile);
-        CodeSmellAnnotator.addIdentifiedCodeSmells(identifiedCodeSmells);
-        CodeSmellAnnotator.enable();
+        PsiManager psiManager = PsiManager.getInstance(project);
+        List<PsiFile> files = FileBasedIndex.getInstance()
+                .getContainingFiles(FileTypeIndex.NAME, JavaFileType.INSTANCE, GlobalSearchScope.projectScope(project))
+                .stream()
+                .map(psiManager::findFile)
+                .collect(Collectors.toList());
 
-        for (CodeSmell codeSmell : identifiedCodeSmells) {
-            PsiElement element = codeSmell.getAssociatedPsiElement();
-            NotificationGroup notifier = new NotificationGroup("acsr", NotificationDisplayType.BALLOON, true);
-            // Can get start offset with element.getTextOffset() and then
-            // add length of element.getText() to get end offset
-            int lineNum = getLineNum(psifile, element);
-            String info = codeSmell.getInformativeMessage(lineNum);
-            notifier.createNotification(
-                    "Code Smell",
-                    info,
-                    NotificationType.INFORMATION,
-                    new AutoRefactorListener(project, codeSmell)
-            ).notify(project);
+        Map<PsiFile, Set<CodeSmell>> identifiedCodeSmells = new HashMap<>();
+
+        for (PsiFile psiFile : files) {
+            if (psiFile != null) {
+                identifiedCodeSmells.put(psiFile, detectCodeSmells(psiFile));
+            }
         }
 
-    }
+        for (Map.Entry<PsiFile, Set<CodeSmell>> entry : identifiedCodeSmells.entrySet()) {
+            PsiFile psiFile = entry.getKey();
+            for (CodeSmell codeSmell : entry.getValue()) {
+                PsiElement element = codeSmell.getAssociatedPsiElement();
+                NotificationGroup notifier = new NotificationGroup("acsr", NotificationDisplayType.BALLOON, true);
+                // Can get start offset with element.getTextOffset() and then
+                // add length of element.getText() to get end offset
+                notifier.createNotification(
+                        "Code Smell in file " + psiFile.getName(),
+                        codeSmell.getInformativeMessage(psiFile),
+                        NotificationType.INFORMATION,
+                        new AutoRefactorListener(project, codeSmell)
+                ).notify(project);
+            }
+        }
 
-    private static int getLineNum(PsiFile psifile, PsiElement element) {
-        return StringUtil.offsetToLineNumber(psifile.getText(), element.getTextOffset()) + 1;
     }
 
     private static Set<CodeSmell> detectCodeSmells(PsiFile psifile) {

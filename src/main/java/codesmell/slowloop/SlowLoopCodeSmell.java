@@ -2,6 +2,7 @@ package codesmell.slowloop;
 
 import codesmell.AbstractCodeSmell;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiForStatement;
 import utils.Constants;
 
@@ -20,7 +21,8 @@ public abstract class SlowLoopCodeSmell extends AbstractCodeSmell {
     }
 
     @Override
-    public String getInformativeMessage(int lineNum) {
+    public String getInformativeMessage(PsiFile psiFile) {
+        int lineNum = getLineNum(psiFile, this.forStatement);
         StringBuilder sb = new StringBuilder();
         sb.append("For loop at line");
         sb.append(' ');

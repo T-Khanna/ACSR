@@ -3,6 +3,7 @@ package codesmell.heavyasynctask;
 import codesmell.AbstractCodeSmell;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiMethod;
 
 public class HeavyAsyncTaskCodeSmell extends AbstractCodeSmell {
@@ -15,7 +16,7 @@ public class HeavyAsyncTaskCodeSmell extends AbstractCodeSmell {
     }
 
     @Override
-    public String getInformativeMessage(int lineNum) {
+    public String getInformativeMessage(PsiFile psiFile) {
         return null;
     }
 
