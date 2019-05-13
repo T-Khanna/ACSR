@@ -9,11 +9,11 @@ import detection.DetectSlowLoop;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-public class CodeVisitor extends JavaRecursiveElementWalkingVisitor {
+public class SourceCodeVisitor extends JavaRecursiveElementWalkingVisitor {
 
     private final Set<CodeSmell> identifiedCodeSmells;
 
-    public CodeVisitor() {
+    public SourceCodeVisitor() {
         this.identifiedCodeSmells = new LinkedHashSet<>();
     }
 

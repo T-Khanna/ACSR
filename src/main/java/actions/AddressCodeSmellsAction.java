@@ -14,7 +14,7 @@ import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.indexing.FileBasedIndex;
 import utils.Constants;
-import visitors.CodeVisitor;
+import visitors.SourceCodeVisitor;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -50,8 +50,6 @@ public class AddressCodeSmellsAction extends AnAction {
                 CodeSmellAnnotator.addIdentifiedCodeSmells(codeSmells);
             }
         }
-
-        CodeSmellAnnotator.enable();
 
         int fileCount = 0;
         int smellCount = 0;
@@ -89,7 +87,7 @@ public class AddressCodeSmellsAction extends AnAction {
     }
 
     private static Set<CodeSmell> detectCodeSmells(PsiFile psifile) {
-        CodeVisitor visitor = new CodeVisitor();
+        SourceCodeVisitor visitor = new SourceCodeVisitor();
         psifile.accept(visitor);
         return visitor.getIdentifiedCodeSmells();
     }

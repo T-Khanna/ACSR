@@ -1,18 +1,23 @@
 package codesmell.slowloop;
 
 import codesmell.AbstractCodeSmell;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiForStatement;
+import com.intellij.psi.*;
+import com.intellij.psi.util.InheritanceUtil;
 import utils.Constants;
 
-public abstract class SlowLoopCodeSmell extends AbstractCodeSmell {
+public class SlowLoopCodeSmell extends AbstractCodeSmell {
 
-    protected PsiForStatement forStatement;
+    private final PsiForStatement forStatement;
+    private final PsiVariable referenceVariable;
+    private final PsiExpression accessExpression;
+    private final PsiLocalVariable forEachReplacement;
 
-    protected SlowLoopCodeSmell(PsiForStatement forStatement) {
+    public SlowLoopCodeSmell(PsiForStatement forStatement, PsiVariable referenceVariable, PsiExpression accessExpression, PsiLocalVariable forEachReplacement) {
         super();
         this.forStatement = forStatement;
+        this.referenceVariable = referenceVariable;
+        this.accessExpression = accessExpression;
+        this.forEachReplacement = forEachReplacement;
     }
 
     @Override
@@ -69,6 +74,58 @@ public abstract class SlowLoopCodeSmell extends AbstractCodeSmell {
     public int hashCode() {
         String thisText = this.forStatement.getText().replaceAll("\\s+", "");
         return thisText.hashCode();
+    }
+
+    @Override
+    public String getRefactoredCode() {
+        StringBuilder result = new StringBuilder();
+        result.append("for (");
+
+        String variableType;
+        String variableName;
+        PsiDeclarationStatement declaration = null;
+        if (this.forEachReplacement == null) {
+            PsiType resolvedType = this.accessExpression.getType();
+            if (resolvedType == null) {
+                return null;
+            }
+            variableType = resolvedType.getPresentableText();
+            variableName = variableType.substring(0, 1).toLowerCase();
+        } else {
+            variableType = this.forEachReplacement.getTypeElement().getText();
+            variableName = this.forEachReplacement.getName();
+            if (this.forEachReplacement.getParent() instanceof PsiDeclarationStatement) {
+                declaration = (PsiDeclarationStatement) this.forEachReplacement.getParent();
+            }
+        }
+
+        result.append(variableType);
+        result.append(' ');
+        result.append(variableName);
+        result.append(" : ");
+        result.append(this.referenceVariable.getName());
+        result.append(')');
+
+        PsiStatement body = this.forStatement.getBody();
+        if (body instanceof PsiBlockStatement) {
+            result.append(" {");
+            PsiBlockStatement block = (PsiBlockStatement) body;
+            for (PsiStatement statement : block.getCodeBlock().getStatements()) {
+                if (statement.equals(declaration)) {
+                    continue;
+                }
+                result.append(replaceAccessCallsInStat(statement, variableName));
+            }
+            result.append('}');
+        } else if (body != null && !body.equals(declaration)) {
+            result.append(replaceAccessCallsInStat(body, variableName));
+        }
+
+        return result.toString();
+    }
+
+    private String replaceAccessCallsInStat(PsiStatement statement, String variableName) {
+        return statement.getText().replace(this.accessExpression.getText(), variableName);
     }
 
 }
