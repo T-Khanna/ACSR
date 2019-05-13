@@ -131,7 +131,7 @@ public class DetectSlowLoop {
         }
         PsiReferenceExpression qualifierReference = (PsiReferenceExpression) initializerQualifier;
         PsiElement resolvedReference = qualifierReference.resolve();
-        if (!(resolvedReference instanceof PsiLocalVariable)) {
+        if (!(resolvedReference instanceof PsiVariable)) {
             return null;
         }
         PsiLocalVariable referenceVariable = (PsiLocalVariable) resolvedReference;
@@ -167,15 +167,6 @@ public class DetectSlowLoop {
         return iteratorVisitor.getConstructedCodeSmell(forStatement);
     }
 
-    private static boolean checkForSpecificMethodCall(PsiExpression expression, String expectedMethodName, String expectedReference, int expectedParamCount) {
-        if (!(expression instanceof PsiMethodCallExpression)) {
-            return false;
-        }
-        PsiMethodCallExpression methodCallExp = (PsiMethodCallExpression) expression;
-        PsiMethod method = methodCallExp.resolveMethod();
-        return method != null && expectedMethodName.equals(method.getName()) && methodCallExp.getArgumentList().getExpressionCount() == expectedParamCount;
-    }
-
     private static PsiReferenceExpression getVariableReference(PsiExpression indexExpression, PsiLocalVariable indexVariable, PsiExpression reference) {
         // Check if the expression on the left hand side of the binary expression is the index variable
         if (ExpressionUtils.isReferenceTo(indexExpression, indexVariable)) {
@@ -185,11 +176,15 @@ public class DetectSlowLoop {
                 if ("length".equals(referenceExp.getReferenceName())) {
                     return referenceExp;
                 }
-            }
-            if (reference instanceof PsiMethodCallExpression) {
+                PsiElement resolvedReference = referenceExp.resolve();
+                if (resolvedReference instanceof PsiVariable) {
+                    PsiVariable capacityVariable = (PsiVariable) resolvedReference;
+                    return getVariableReference(indexExpression, indexVariable, capacityVariable.getInitializer());
+                }
+            } else if (reference instanceof PsiMethodCallExpression) {
                 // The reference is a list, so check if the reference is called the size() method
                 PsiReferenceExpression methodExp = ((PsiMethodCallExpression) reference).getMethodExpression();
-                if ("size".equals(methodExp.getReferenceName())) {
+                if (HardcodedMethodConstants.SIZE.equals(methodExp.getReferenceName())) {
                     return methodExp;
                 }
             }
