@@ -99,11 +99,28 @@ public class SlowLoopCodeSmell extends AbstractCodeSmell {
             }
         }
 
+        // Check for inner class field access to outer class, qualifying the field properly
+        String referenceName = this.referenceVariable.getName();
+        if (this.referenceVariable instanceof PsiField) {
+            PsiField field = (PsiField) this.referenceVariable;
+            PsiClass containingClass = field.getContainingClass();
+            PsiFile containingFile = field.getContainingFile();
+            if (containingFile != null && containingClass != null) {
+                String className = containingClass.getQualifiedName();
+                if (className != null && containingFile.getName().contains(className)) {
+                    referenceName = "this." + referenceName;
+                } else {
+
+                    referenceName = className + ".this." + referenceName;
+                }
+            }
+        }
+
         result.append(variableType);
         result.append(' ');
         result.append(variableName);
         result.append(" : ");
-        result.append(this.referenceVariable.getName());
+        result.append(referenceName);
         result.append(')');
 
         PsiStatement body = this.forStatement.getBody();
