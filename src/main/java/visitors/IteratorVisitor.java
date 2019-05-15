@@ -8,7 +8,7 @@ import com.siyeh.ig.psiutils.VariableAccessUtils;
 
 public class IteratorVisitor extends JavaRecursiveElementWalkingVisitor {
 
-    private final PsiLocalVariable referenceVariable;
+    private final PsiVariable referenceVariable;
     private final PsiLocalVariable iteratorVariable;
 
     private boolean tooManyNextCalls = false;
@@ -17,7 +17,7 @@ public class IteratorVisitor extends JavaRecursiveElementWalkingVisitor {
     private PsiMethodCallExpression nextCall = null;
     private PsiLocalVariable forEachReplacement = null;
 
-    public IteratorVisitor(PsiLocalVariable referenceVariable, PsiLocalVariable iteratorVariable) {
+    public IteratorVisitor(PsiVariable referenceVariable, PsiLocalVariable iteratorVariable) {
         this.referenceVariable = referenceVariable;
         this.iteratorVariable = iteratorVariable;
     }

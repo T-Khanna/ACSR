@@ -134,7 +134,7 @@ public class DetectSlowLoop {
         if (!(resolvedReference instanceof PsiVariable)) {
             return null;
         }
-        PsiLocalVariable referenceVariable = (PsiLocalVariable) resolvedReference;
+        PsiVariable referenceVariable = (PsiVariable) resolvedReference;
 
         // Check that condition is the hasNext() method call on the iterator variable
         PsiExpression condition = forStatement.getCondition();

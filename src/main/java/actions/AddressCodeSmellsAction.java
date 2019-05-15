@@ -13,6 +13,7 @@ import com.intellij.psi.PsiManager;
 import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.indexing.FileBasedIndex;
+import org.jetbrains.annotations.NotNull;
 import utils.Constants;
 import visitors.SourceCodeVisitor;
 
@@ -72,18 +73,41 @@ public class AddressCodeSmellsAction extends AnAction {
             fileCount++;
         }
 
-        if (!allCodeSmells.isEmpty()) {
-            NotificationGroup notifier = new NotificationGroup("acsr", NotificationDisplayType.BALLOON, true);
-            // Can get start offset with element.getTextOffset() and then
-            // add length of element.getText() to get end offset
-            notifier.createNotification(
-                    smellCount + " code smells were identified in the project across " + fileCount + " file" + (fileCount == 1 ? "" : "s"),
-                    "To refactor all identified code smells, please click <a href=\"" + Constants.REFACTOR_TRIGGER + "\">here</a>.",
-                    NotificationType.INFORMATION,
-                    new AutoRefactorListener(project, allCodeSmells)
-            ).notify(project);
-        }
+        NotificationGroup notifier = new NotificationGroup("acsr", NotificationDisplayType.BALLOON, true);
+        // Can get start offset with element.getTextOffset() and then
+        // add length of element.getText() to get end offset
+        notifier.createNotification(
+                getTitle(fileCount, smellCount),
+                "To refactor all identified code smells, please click <a href=\"" + Constants.REFACTOR_TRIGGER + "\">here</a>.",
+                NotificationType.INFORMATION,
+                new AutoRefactorListener(project, allCodeSmells)
+        ).notify(project);
 
+    }
+
+    private String getTitle(int fileCount, int smellCount) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(smellCount);
+        sb.append(' ');
+        sb.append("code smell");
+        if (smellCount == 1) {
+            sb.append(' ');
+            sb.append("was");
+        } else {
+            sb.append("s");
+            sb.append(' ');
+            sb.append("were");
+        }
+        sb.append(' ');
+        sb.append("identified in the project across");
+        sb.append(' ');
+        sb.append(fileCount);
+        sb.append(' ');
+        sb.append("file");
+        if (fileCount != 1) {
+            sb.append("s");
+        }
+        return sb.toString();
     }
 
     private static Set<CodeSmell> detectCodeSmells(PsiFile psifile) {
