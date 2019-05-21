@@ -8,7 +8,7 @@ public interface CodeSmell {
 
     String getInformativeMessage(PsiFile psiFile);
 
-    String getAnnotationMessage();
+    String getShortDescription();
 
     PsiElement getAssociatedPsiElement();
 

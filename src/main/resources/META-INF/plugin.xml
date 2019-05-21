@@ -16,7 +16,14 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <!-- Add your extensions here -->
-        <annotator language="JAVA" implementationClass="actions.CodeSmellAnnotator"/>
+        <localInspection language="JAVA"
+                         displayName="Code Smell'"
+                         groupPath="Java"
+                         groupBundle="messages.InspectionsBundle"
+                         groupKey="group.names.probable.bugs"
+                         enabledByDefault="true"
+                         level="WARNING"
+                         implementationClass="inspections.CodeSmellInspection"/>
         <additionalTextAttributes scheme="Default" file="colorSchemes/CodeSmellDefault.xml"/>
     </extensions>
 

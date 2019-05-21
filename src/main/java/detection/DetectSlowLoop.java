@@ -4,7 +4,10 @@ import codesmell.slowloop.SlowLoopCodeSmell;
 import com.intellij.psi.*;
 import com.intellij.psi.tree.IElementType;
 import com.siyeh.HardcodedMethodConstants;
-import com.siyeh.ig.psiutils.*;
+import com.siyeh.ig.psiutils.ExpressionUtils;
+import com.siyeh.ig.psiutils.ParenthesesUtils;
+import com.siyeh.ig.psiutils.TypeUtils;
+import com.siyeh.ig.psiutils.VariableAccessUtils;
 import visitors.IndexedLoopVisitor;
 import visitors.IteratorVisitor;
 

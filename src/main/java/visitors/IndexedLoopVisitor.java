@@ -1,6 +1,6 @@
 package visitors;
 
-import codesmell.slowloop.*;
+import codesmell.slowloop.SlowLoopCodeSmell;
 import com.intellij.psi.*;
 import com.intellij.psi.util.InheritanceUtil;
 import com.siyeh.HardcodedMethodConstants;
@@ -11,6 +11,7 @@ public class IndexedLoopVisitor extends JavaRecursiveElementWalkingVisitor {
     private final PsiLocalVariable indexVariable;
     private final PsiVariable referenceVariable;
 
+    private boolean hasNonThisQualifierBeforeAccessExpression = false;
     private boolean isReassigned = false;
     private boolean isIndexOnlyUsedForReferenceAccess = true;
     private boolean isModified = false;
@@ -33,20 +34,22 @@ public class IndexedLoopVisitor extends JavaRecursiveElementWalkingVisitor {
             PsiElement parent = expression.getParent();
             if (parent instanceof PsiArrayAccessExpression) {
                 PsiArrayAccessExpression arrayExp = (PsiArrayAccessExpression) parent;
-                if (!isReferenceVariable(arrayExp.getArrayExpression())) {
+                PsiExpression arrayRef = arrayExp.getArrayExpression();
+                if (!isReferenceVariable(arrayRef)) {
                     this.isIndexOnlyUsedForReferenceAccess = false;
-                } else if (this.accessExpression == null) {
-                    this.accessExpression = arrayExp;
+                } else {
+                    checkForQualifierInFrontOfGetCall(arrayRef, arrayExp);
                 }
             } else if (parent.getParent() instanceof PsiMethodCallExpression) {
                 PsiMethodCallExpression methodCallExp = (PsiMethodCallExpression) parent.getParent();
                 PsiReferenceExpression methodExp = methodCallExp.getMethodExpression();
                 PsiMethod method = methodCallExp.resolveMethod();
+                PsiExpression methodCallRef = methodExp.getQualifierExpression();
                 if (method != null) {
-                    if (!HardcodedMethodConstants.GET.equals(method.getName()) || !isReferenceVariable(methodExp.getQualifierExpression())) {
+                    if (!HardcodedMethodConstants.GET.equals(method.getName()) || !isReferenceVariable(methodCallRef)) {
                         this.isIndexOnlyUsedForReferenceAccess = false;
-                    } else if (this.accessExpression == null) {
-                        this.accessExpression = methodCallExp;
+                    } else {
+                        checkForQualifierInFrontOfGetCall(methodCallRef, methodCallExp);
                     }
                 }
             } else {
@@ -54,6 +57,18 @@ public class IndexedLoopVisitor extends JavaRecursiveElementWalkingVisitor {
             }
         }
         super.visitReferenceExpression(expression);
+    }
+
+    private void checkForQualifierInFrontOfGetCall(PsiExpression expression, PsiExpression accessExpression) {
+        if (expression instanceof PsiReferenceExpression) {
+            PsiReferenceExpression reference = (PsiReferenceExpression) expression;
+            PsiExpression qualifier = reference.getQualifierExpression();
+            if (qualifier != null && !(qualifier instanceof PsiThisExpression)) {
+                this.hasNonThisQualifierBeforeAccessExpression = true;
+            } else if (this.accessExpression == null) {
+                this.accessExpression = accessExpression;
+            }
+        }
     }
 
     @Override
@@ -130,7 +145,7 @@ public class IndexedLoopVisitor extends JavaRecursiveElementWalkingVisitor {
     }
 
     private boolean isSimpleForLoop() {
-        return this.accessExpression != null && !this.isModified && !this.isReassigned && this.isIndexOnlyUsedForReferenceAccess;
+        return this.accessExpression != null && !this.isModified && !this.isReassigned && this.isIndexOnlyUsedForReferenceAccess && !this.hasNonThisQualifierBeforeAccessExpression;
     }
 
     public SlowLoopCodeSmell getConstructedCodeSmell(PsiForStatement forStatement) {

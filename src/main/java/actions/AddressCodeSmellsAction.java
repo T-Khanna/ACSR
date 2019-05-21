@@ -45,22 +45,24 @@ public class AddressCodeSmellsAction extends AnAction {
             if (psiFile == null) {
                 continue;
             }
-            Set<CodeSmell> codeSmells = detectCodeSmells(psiFile);
+            SourceCodeVisitor sourceCodeVisitor = new SourceCodeVisitor();
+            psiFile.accept(sourceCodeVisitor);
+            Set<CodeSmell> codeSmells = sourceCodeVisitor.getIdentifiedCodeSmells();
             if (!codeSmells.isEmpty()) {
                 identifiedCodeSmells.put(psiFile, codeSmells);
-                CodeSmellAnnotator.addIdentifiedCodeSmells(codeSmells);
             }
         }
 
         int fileCount = 0;
         int smellCount = 0;
+
         List<CodeSmell> allCodeSmells = new LinkedList<>();
+
         for (Map.Entry<PsiFile, Set<CodeSmell>> entry : identifiedCodeSmells.entrySet()) {
             PsiFile psiFile = entry.getKey();
-            for (CodeSmell codeSmell : entry.getValue()) {
+            Set<CodeSmell> codeSmells = entry.getValue();
+            for (CodeSmell codeSmell : codeSmells) {
                 NotificationGroup notifier = new NotificationGroup("acsr", NotificationDisplayType.BALLOON, true);
-                // Can get start offset with element.getTextOffset() and then
-                // add length of element.getText() to get end offset
                 notifier.createNotification(
                         "Code Smell in file " + psiFile.getName(),
                         codeSmell.getInformativeMessage(psiFile),
@@ -74,15 +76,22 @@ public class AddressCodeSmellsAction extends AnAction {
         }
 
         NotificationGroup notifier = new NotificationGroup("acsr", NotificationDisplayType.BALLOON, true);
-        // Can get start offset with element.getTextOffset() and then
-        // add length of element.getText() to get end offset
         notifier.createNotification(
                 getTitle(fileCount, smellCount),
-                "To refactor all identified code smells, please click <a href=\"" + Constants.REFACTOR_TRIGGER + "\">here</a>.",
+                getContent(),
                 NotificationType.INFORMATION,
                 new AutoRefactorListener(project, allCodeSmells)
         ).notify(project);
 
+    }
+
+    @NotNull
+    private String getContent() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("To refactor all identified code smells, please click <a href=\"");
+        sb.append(Constants.REFACTOR_TRIGGER);
+        sb.append("\">here</a>.");
+        return sb.toString();
     }
 
     private String getTitle(int fileCount, int smellCount) {
@@ -110,10 +119,5 @@ public class AddressCodeSmellsAction extends AnAction {
         return sb.toString();
     }
 
-    private static Set<CodeSmell> detectCodeSmells(PsiFile psifile) {
-        SourceCodeVisitor visitor = new SourceCodeVisitor();
-        psifile.accept(visitor);
-        return visitor.getIdentifiedCodeSmells();
-    }
 
 }

@@ -3,12 +3,11 @@ package codesmell.slowloop;
 import codesmell.AbstractCodeSmell;
 import com.intellij.psi.*;
 import com.siyeh.HardcodedMethodConstants;
-import org.jetbrains.annotations.NotNull;
 import utils.Constants;
 import visitors.VariableNameVisitor;
 
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class SlowLoopCodeSmell extends AbstractCodeSmell {
@@ -27,7 +26,7 @@ public class SlowLoopCodeSmell extends AbstractCodeSmell {
     }
 
     @Override
-    public String getAnnotationMessage() {
+    public String getShortDescription() {
         return "Possible instance of Slow Loop code smell";
     }
 
@@ -96,6 +95,9 @@ public class SlowLoopCodeSmell extends AbstractCodeSmell {
                 return null;
             }
             variableType = resolvedType.getPresentableText();
+            // Strange bug with getPresentableText() for PsiType, where for type "X<?>", it returns
+            // "X<capture of ?>". Strip this out before continuing
+            variableType = variableType.replace("capture of", "");
             PsiElement containingMethod = this.forStatement;
             while (containingMethod != null && !(containingMethod instanceof PsiMethod)) {
                 containingMethod = containingMethod.getParent();
@@ -146,7 +148,7 @@ public class SlowLoopCodeSmell extends AbstractCodeSmell {
         VariableNameVisitor variableNameVisitor = new VariableNameVisitor();
         containingMethod.accept(variableNameVisitor);
         Set<String> unavailableVariableNames = variableNameVisitor.getVariableNames();
-        unavailableVariableNames.addAll(Arrays.asList("abstract", "assert", "boolean",
+        List<String> javaReservedWords = Arrays.asList("abstract", "assert", "boolean",
                 "break", "byte", "case", "catch", "char", "class", "const",
                 "continue", "default", "do", "double", "else", "extends", "false",
                 "final", "finally", "float", "for", "goto", "if", "implements",
@@ -154,7 +156,8 @@ public class SlowLoopCodeSmell extends AbstractCodeSmell {
                 "new", "null", "package", "private", "protected", "public",
                 "return", "short", "static", "strictfp", "super", "switch",
                 "synchronized", "this", "throw", "throws", "transient", "true",
-                "try", "void", "volatile", "while"));
+                "try", "void", "volatile", "while");
+        unavailableVariableNames.addAll(javaReservedWords);
         StringBuilder variableName = new StringBuilder();
         for (char c : variableType.toCharArray()) {
             if (!Character.isAlphabetic(c)) {
