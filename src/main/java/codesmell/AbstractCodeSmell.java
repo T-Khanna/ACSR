@@ -5,21 +5,32 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.siyeh.ig.psiutils.CommentTracker;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public abstract class AbstractCodeSmell implements CodeSmell {
 
-    protected CommentTracker commentTracker;
+    protected Map<PsiElement, String> refactoringMappings;
+    private boolean isRefactoringsUpToDate;
 
     protected AbstractCodeSmell() {
-        this.commentTracker = new CommentTracker();
-    }
-
-    @Override
-    public CommentTracker getCommentTracker() {
-        return this.commentTracker;
+        this.refactoringMappings = new HashMap<>();
+        this.isRefactoringsUpToDate = false;
     }
 
     protected static int getLineNum(PsiFile psifile, PsiElement element) {
         return StringUtil.offsetToLineNumber(psifile.getText(), element.getTextOffset()) + 1;
     }
+
+    @Override
+    public Map<PsiElement, String> getMappingFromPsiElementToRefactoring() {
+        if (!this.isRefactoringsUpToDate) {
+            updateRefactorings();
+            this.isRefactoringsUpToDate = true;
+        }
+        return this.refactoringMappings;
+    }
+
+    protected abstract void updateRefactorings();
 
 }

@@ -52,81 +52,43 @@ public class HeavyAsyncTaskCodeSmell extends AbstractCodeSmell {
     }
 
     @Override
-    public PsiElement getAssociatedPsiElement() {
-        return this.asyncTask;
-    }
-
-    @Override
-    public String getRefactoredCode() {
-        StringBuilder result = new StringBuilder();
+    protected void updateRefactorings() {
         StringBuilder background = new StringBuilder();
-
-        // Append class signature first
-        PsiModifierList modifiers = this.asyncTask.getModifierList();
-        PsiReferenceList extenders = this.asyncTask.getExtendsList();
-        PsiReferenceList implementers = this.asyncTask.getImplementsList();
-        String className = this.asyncTask.getName();
-        if (modifiers != null) {
-            result.append(modifiers.getText());
-            result.append(' ');
-        }
-        result.append("class ");
-        result.append(className);
-        if (extenders != null) {
-            result.append(' ');
-            result.append(extenders.getText());
-        }
-        if (implementers != null) {
-            result.append(' ');
-            result.append(implementers.getText());
-        }
-
-        result.append(" {");
 
         // Append background method signature
         PsiType returnType = this.background.getReturnType();
         if (returnType == null) {
-            return null;
+            return;
         }
         appendSignature(this.background, background, returnType);
         background.append(" {");
 
         // Check onPreExecute() method
-        background.append(extractHeavyTaskFromUIMethod(this.preExecute, result));
+        StringBuilder preExecute = new StringBuilder();
+        background.append(extractHeavyTaskFromUIMethod(this.preExecute, preExecute));
+        this.refactoringMappings.put(this.preExecute, preExecute.toString());
 
         // Append background content
         PsiCodeBlock body = this.background.getBody();
         if (body == null) {
-            return null;
+            return;
         }
         for (PsiStatement statement : body.getStatements()) {
             background.append(statement.getText());
         }
 
         // Check onProgressUpdate() method
-        background.append(extractHeavyTaskFromUIMethod(this.progressUpdate, result));
+        StringBuilder progressUpdate = new StringBuilder();
+        background.append(extractHeavyTaskFromUIMethod(this.progressUpdate, progressUpdate));
+        this.refactoringMappings.put(this.progressUpdate, progressUpdate.toString());
 
         // Check onPostExecute() method
-        background.append(extractHeavyTaskFromUIMethod(this.postExecute, result));
+        StringBuilder postExecute = new StringBuilder();
+        background.append(extractHeavyTaskFromUIMethod(this.postExecute, postExecute));
+        this.refactoringMappings.put(this.postExecute, postExecute.toString());
 
         background.append('}');
-        result.append(background);
-
-        for (PsiMethod method : this.asyncTask.getMethods()) {
-            switch (method.getName()) {
-                case "onPreExecute":
-                case "onPostExecute":
-                case "onProgressUpdate":
-                case "doInBackground":
-                    break;
-                default:
-                    result.append(method.getText());
-            }
-        }
-
-        result.append('}');
-
-        return result.toString();
+        this.refactoringMappings.put(this.background, background.toString());
     }
 
     private String extractHeavyTaskFromUIMethod(PsiMethod uiMethod, StringBuilder sb) {

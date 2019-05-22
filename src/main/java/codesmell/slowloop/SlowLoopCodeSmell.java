@@ -6,9 +6,7 @@ import com.siyeh.HardcodedMethodConstants;
 import utils.Constants;
 import visitors.VariableNameVisitor;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class SlowLoopCodeSmell extends AbstractCodeSmell {
 
@@ -55,8 +53,8 @@ public class SlowLoopCodeSmell extends AbstractCodeSmell {
     }
 
     @Override
-    public PsiElement getAssociatedPsiElement() {
-        return this.forStatement;
+    protected void updateRefactorings() {
+        this.refactoringMappings.put(this.forStatement, getRefactoredCode());
     }
 
     @Override
@@ -81,8 +79,7 @@ public class SlowLoopCodeSmell extends AbstractCodeSmell {
         return thisText.hashCode();
     }
 
-    @Override
-    public String getRefactoredCode() {
+    private String getRefactoredCode() {
         StringBuilder result = new StringBuilder();
         result.append("for (");
 

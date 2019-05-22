@@ -5,10 +5,13 @@ import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.project.Project;
-import com.intellij.psi.PsiElement;
+import com.intellij.psi.*;
 import com.siyeh.ig.psiutils.CommentTracker;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
+import utils.Utils;
+
+import java.util.Map;
 
 public class CodeSmellFix implements LocalQuickFix {
 
@@ -36,15 +39,15 @@ public class CodeSmellFix implements LocalQuickFix {
 
     @Override
     public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
-        PsiElement element = descriptor.getPsiElement();
+        PsiElement descriptorElement = descriptor.getPsiElement();
         // Safety check to ensure no improper refactoring takes place
-        if (!element.equals(this.codeSmell.getAssociatedPsiElement())) {
+        Map<PsiElement, String> refactoringMapping = this.codeSmell.getMappingFromPsiElementToRefactoring();
+        if (!refactoringMapping.containsKey(descriptorElement)) {
             return;
         }
-        CommentTracker ct = this.codeSmell.getCommentTracker();
-        String refactoredCode = this.codeSmell.getRefactoredCode();
+
         WriteCommandAction.runWriteCommandAction(project, () -> {
-            ct.replaceAndRestoreComments(element, refactoredCode);
+            Utils.refactorCodeSegment(project, refactoringMapping);
         });
     }
 

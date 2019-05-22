@@ -7,15 +7,15 @@ import com.intellij.notification.NotificationListener;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
-import com.siyeh.ig.psiutils.CommentTracker;
 import org.jetbrains.annotations.NotNull;
 import utils.Constants;
+import utils.Utils;
 
 import javax.swing.event.HyperlinkEvent;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 public class AutoRefactorListener implements NotificationListener {
 
@@ -38,25 +38,17 @@ public class AutoRefactorListener implements NotificationListener {
         if (event.getDescription().equals(Constants.REFACTOR_TRIGGER)) {
             WriteCommandAction.runWriteCommandAction(this.project, () -> {
                 for (CodeSmell codeSmell : this.codeSmells) {
-                    PsiElement element = codeSmell.getAssociatedPsiElement();
-                    PsiElement newElement = null;
-                    CommentTracker ct = codeSmell.getCommentTracker();
-                    String newText = codeSmell.getRefactoredCode();
-                    PsiElementFactory factory = JavaPsiFacade.getElementFactory(this.project);
-                    if (element instanceof PsiStatement) {
-                        newElement = factory.createStatementFromText(newText, element);
-                    } else if (element instanceof PsiClass) {
-                        newElement = factory.createClassFromText(newText, element);
-                    }
-                    if (newElement != null) {
-                        ct.replaceAndRestoreComments(element, newElement);
-                    }
+                    Utils.refactorCodeSegment(this.project, codeSmell.getMappingFromPsiElementToRefactoring());
                 }
             });
         } else if (event.getDescription().equals(Constants.NAVIGATE_TRIGGER)) {
-            PsiElement element = this.codeSmells.get(0).getAssociatedPsiElement();
-            OpenFileDescriptor fileDescriptor = new OpenFileDescriptor(this.project, element.getContainingFile().getVirtualFile(), element.getTextOffset());
-            fileDescriptor.navigate(true);
+            CodeSmell codeSmell = this.codeSmells.get(0);
+            Map<PsiElement, String> refactoringMapping = codeSmell.getMappingFromPsiElementToRefactoring();
+            for (PsiElement element : refactoringMapping.keySet()) {
+                OpenFileDescriptor fileDescriptor = new OpenFileDescriptor(this.project, element.getContainingFile().getVirtualFile(), element.getTextOffset());
+                fileDescriptor.navigate(true);
+                break;
+            }
         } else {
             BrowserUtil.launchBrowser(event.getURL().toExternalForm());
         }
