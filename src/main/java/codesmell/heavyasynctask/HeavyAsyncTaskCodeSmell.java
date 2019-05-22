@@ -1,28 +1,54 @@
 package codesmell.heavyasynctask;
 
 import codesmell.AbstractCodeSmell;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiMethod;
+import com.intellij.psi.*;
+import utils.Constants;
+
+import java.util.Set;
 
 public class HeavyAsyncTaskCodeSmell extends AbstractCodeSmell {
 
-    private PsiClass asyncTask;
+    private final PsiClass asyncTask;
+    private final PsiMethod preExecute;
+    private final PsiMethod progressUpdate;
+    private final PsiMethod postExecute;
+    private final Set<PsiStatement> allStatementsToRemove;
+    private final PsiMethod background;
 
-    public HeavyAsyncTaskCodeSmell(PsiClass asyncTask) {
+    public HeavyAsyncTaskCodeSmell(PsiClass asyncTask, PsiMethod background, PsiMethod preExecute, PsiMethod progressUpdate,
+                                   PsiMethod postExecute, Set<PsiStatement> allStatementsToRemove) {
         super();
         this.asyncTask = asyncTask;
+        this.background = background;
+        this.preExecute = preExecute;
+        this.progressUpdate = progressUpdate;
+        this.postExecute = postExecute;
+        this.allStatementsToRemove = allStatementsToRemove;
     }
 
     @Override
     public String getInformativeMessage(PsiFile psiFile) {
-        return null;
+        int lineNum = getLineNum(psiFile, this.asyncTask);
+        StringBuilder sb = new StringBuilder();
+        sb.append("<a href=\"");
+        sb.append(Constants.NAVIGATE_TRIGGER);
+        sb.append("\">");
+        sb.append("AsyncTask at line");
+        sb.append(' ');
+        sb.append(lineNum);
+        sb.append("</a>");
+        sb.append(' ');
+        sb.append("is an instance of a Heavy AsyncTask (HAS) code smell.");
+        sb.append('\n');
+        sb.append("Click <a href=\"");
+        sb.append(Constants.REFACTOR_TRIGGER);
+        sb.append("\">here</a> to refactor this code smell.");
+        return sb.toString();
     }
 
     @Override
-    public String getAnnotationMessage() {
-        return null;
+    public String getShortDescription() {
+        return "Possible Heavy AsyncTask code smell";
     }
 
     @Override
@@ -32,52 +58,119 @@ public class HeavyAsyncTaskCodeSmell extends AbstractCodeSmell {
 
     @Override
     public String getRefactoredCode() {
-        // Need to rearrange heavy tasks from UI methods to doInBackground()
+        StringBuilder result = new StringBuilder();
+        StringBuilder background = new StringBuilder();
 
-        /*
-         * PsiMethod preExecute = PsiMethod.findMethod(this.asyncTask, "onPreExecute");
-         * PsiMethod progressUpdate = PsiMethod.findMethod(this.asyncTask, "onProgressUpdate");
-         * PsiMethod postExecute = PsiMethod.findMethod(this.asyncTask, "onPostExecute");
-         *
-         * PsiMethod background = PsiMethod.findMethod(this.asyncTask, "doInBackground");
-         *
-         * // If doInBackground() does not exist, create it with reasonable types.
-         * if (background == null) {
-         *     background = PsiMethod.createMethod("doInBackground");
-         *     this.asyncTask.addMethod(background);
-         * }
-         *
-         * background.addText(removeHeavyTaskFromPreExecute(preExecute);
-         * background.addText(removeHeavyTaskFromPreExecute(progressUpdate);
-         * background.addText(removeHeavyTaskFromPreExecute(postExecute);
-         *
-         */
-        return null;
+        // Append class signature first
+        PsiModifierList modifiers = this.asyncTask.getModifierList();
+        PsiReferenceList extenders = this.asyncTask.getExtendsList();
+        PsiReferenceList implementers = this.asyncTask.getImplementsList();
+        String className = this.asyncTask.getName();
+        if (modifiers != null) {
+            result.append(modifiers.getText());
+            result.append(' ');
+        }
+        result.append("class ");
+        result.append(className);
+        if (extenders != null) {
+            result.append(' ');
+            result.append(extenders.getText());
+        }
+        if (implementers != null) {
+            result.append(' ');
+            result.append(implementers.getText());
+        }
+
+        result.append(" {");
+
+        // Append background method signature
+        PsiType returnType = this.background.getReturnType();
+        if (returnType == null) {
+            return null;
+        }
+        appendSignature(this.background, background, returnType);
+        background.append(" {");
+
+        // Check onPreExecute() method
+        background.append(extractHeavyTaskFromUIMethod(this.preExecute, result));
+
+        // Append background content
+        PsiCodeBlock body = this.background.getBody();
+        if (body == null) {
+            return null;
+        }
+        for (PsiStatement statement : body.getStatements()) {
+            background.append(statement.getText());
+        }
+
+        // Check onProgressUpdate() method
+        background.append(extractHeavyTaskFromUIMethod(this.progressUpdate, result));
+
+        // Check onPostExecute() method
+        background.append(extractHeavyTaskFromUIMethod(this.postExecute, result));
+
+        background.append('}');
+        result.append(background);
+
+        for (PsiMethod method : this.asyncTask.getMethods()) {
+            switch (method.getName()) {
+                case "onPreExecute":
+                case "onPostExecute":
+                case "onProgressUpdate":
+                case "doInBackground":
+                    break;
+                default:
+                    result.append(method.getText());
+            }
+        }
+
+        result.append('}');
+
+        return result.toString();
     }
 
-    private String removeHeavyTaskFromPreExecute(PsiMethod onPreExecute) {
-        // Remove heavy task in onPreExecute() method and return
-        // the heavy task for use in doInBackground()
-        return null;
+    private String extractHeavyTaskFromUIMethod(PsiMethod uiMethod, StringBuilder sb) {
+        StringBuilder result = new StringBuilder();
+        if (uiMethod == null) {
+            return null;
+        }
+
+        // Append uiMethod signature
+        PsiType returnType = uiMethod.getReturnType();
+        if (returnType == null) {
+            return null;
+        }
+        appendSignature(uiMethod, sb, returnType);
+        sb.append(" {");
+
+        PsiCodeBlock body = uiMethod.getBody();
+        if (body == null) {
+            return null;
+        }
+        for (PsiStatement statement : body.getStatements()) {
+            String text = statement.getText();
+            if (this.allStatementsToRemove.contains(statement)) {
+                result.append(text);
+            } else {
+                sb.append(text);
+            }
+        }
+
+        sb.append('}');
+        return result.toString();
     }
 
-    private String removeHeavyTaskFromProgressUpdate(PsiMethod onProgressUpdate) {
-        // Remove heavy task in onProgressUpdate() method and return
-        // the heavy task for use in doInBackground()
-        return null;
-    }
+    private void appendSignature(PsiMethod method, StringBuilder sb, PsiType returnType) {
+        PsiModifierList modifiers = method.getModifierList();
+        PsiParameterList params = method.getParameterList();
+        String methodName = method.getName();
 
-    private String removeHeavyTaskFromPostExecute(PsiMethod onPostExecute) {
-        // Remove heavy task in onPostExecute() method and return
-        // the heavy task for use in doInBackground()
-        return null;
+        sb.append(modifiers.getText());
+        sb.append(' ');
+        sb.append(returnType.getPresentableText());
+        sb.append(' ');
+        sb.append(methodName);
+        sb.append(params.getText());
     }
-
-    private String extractNonUIStatements(PsiMethod method) {
-        // Theory: Anything that extends a View, treat it as a UI related statement.
-        //         Might need to include others like Dialog, etc.
-        //         In addition, ignore super methods, and also delete any methods that become empty.
-        return null;
-    }
-
+    
 }

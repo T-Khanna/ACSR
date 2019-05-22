@@ -7,7 +7,8 @@ import com.intellij.notification.NotificationListener;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
-import com.intellij.psi.PsiElement;
+import com.intellij.openapi.util.TextRange;
+import com.intellij.psi.*;
 import com.siyeh.ig.psiutils.CommentTracker;
 import org.jetbrains.annotations.NotNull;
 import utils.Constants;
@@ -38,9 +39,18 @@ public class AutoRefactorListener implements NotificationListener {
             WriteCommandAction.runWriteCommandAction(this.project, () -> {
                 for (CodeSmell codeSmell : this.codeSmells) {
                     PsiElement element = codeSmell.getAssociatedPsiElement();
+                    PsiElement newElement = null;
                     CommentTracker ct = codeSmell.getCommentTracker();
                     String newText = codeSmell.getRefactoredCode();
-                    ct.replaceAndRestoreComments(element, newText);
+                    PsiElementFactory factory = JavaPsiFacade.getElementFactory(this.project);
+                    if (element instanceof PsiStatement) {
+                        newElement = factory.createStatementFromText(newText, element);
+                    } else if (element instanceof PsiClass) {
+                        newElement = factory.createClassFromText(newText, element);
+                    }
+                    if (newElement != null) {
+                        ct.replaceAndRestoreComments(element, newElement);
+                    }
                 }
             });
         } else if (event.getDescription().equals(Constants.NAVIGATE_TRIGGER)) {

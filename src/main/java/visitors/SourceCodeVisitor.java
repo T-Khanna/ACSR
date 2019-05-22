@@ -1,9 +1,12 @@
 package visitors;
 
 import codesmell.CodeSmell;
+import codesmell.heavyasynctask.HeavyAsyncTaskCodeSmell;
 import codesmell.slowloop.SlowLoopCodeSmell;
 import com.intellij.psi.JavaRecursiveElementWalkingVisitor;
+import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiForStatement;
+import detection.DetectHeavyAsyncTask;
 import detection.DetectSlowLoop;
 
 import java.util.LinkedHashSet;
@@ -24,6 +27,15 @@ public class SourceCodeVisitor extends JavaRecursiveElementWalkingVisitor {
             this.identifiedCodeSmells.add(possibleSlowLoop);
         }
         super.visitForStatement(forStatement);
+    }
+
+    @Override
+    public void visitClass(PsiClass aClass) {
+        HeavyAsyncTaskCodeSmell possibleHeavyAsyncTask = DetectHeavyAsyncTask.checkForHeavyAsyncTask(aClass);
+        if (possibleHeavyAsyncTask != null) {
+            this.identifiedCodeSmells.add(possibleHeavyAsyncTask);
+        }
+        super.visitClass(aClass);
     }
 
     public Set<CodeSmell> getIdentifiedCodeSmells() {
