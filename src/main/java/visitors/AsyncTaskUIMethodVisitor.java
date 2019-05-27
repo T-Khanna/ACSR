@@ -4,15 +4,19 @@ import com.intellij.psi.*;
 import com.intellij.psi.util.InheritanceUtil;
 import com.intellij.psi.util.PsiUtil;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
 public class AsyncTaskUIMethodVisitor extends JavaRecursiveElementWalkingVisitor {
 
     private Set<PsiStatement> statementsToIgnore;
+    private Set<PsiParameter> uiMethodParameters;
 
-    public AsyncTaskUIMethodVisitor() {
+    public AsyncTaskUIMethodVisitor(PsiParameter[] parameters) {
         this.statementsToIgnore = new HashSet<>();
+        this.uiMethodParameters = new HashSet<>();
+        this.uiMethodParameters.addAll(Arrays.asList(parameters));
     }
 
     @Override
@@ -33,6 +37,16 @@ public class AsyncTaskUIMethodVisitor extends JavaRecursiveElementWalkingVisitor
             addSurroundingStatementToIgnores(methodCallExp);
         }
         super.visitMethodCallExpression(methodCallExp);
+    }
+
+    @Override
+    public void visitReferenceExpression(PsiReferenceExpression expression) {
+        // If any statement uses an expression that resolves to a method parameter, mark the statement as ignored
+        PsiElement element = expression.resolve();
+        if (element instanceof PsiParameter && this.uiMethodParameters.contains(element)) {
+            addSurroundingStatementToIgnores(expression);
+        }
+        super.visitReferenceExpression(expression);
     }
 
     @Override

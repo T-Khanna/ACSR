@@ -64,62 +64,66 @@ public class HeavyAsyncTaskCodeSmell extends AbstractCodeSmell {
         background.append(" {");
 
         // Check onPreExecute() method
-        StringBuilder preExecute = new StringBuilder();
-        background.append(extractHeavyTaskFromUIMethod(this.preExecute, preExecute));
-        this.refactoringMappings.put(this.preExecute, preExecute.toString());
+        checkUIMethod(background, this.preExecute);
 
         // Append background content
         PsiCodeBlock body = this.background.getBody();
         if (body == null) {
             return;
         }
-        for (PsiStatement statement : body.getStatements()) {
+
+        PsiReturnStatement lastStat = null;
+
+        PsiStatement[] statements = body.getStatements();
+        int lastStatementIndex = statements.length - 1;
+        for (int i = 0; i < lastStatementIndex; i++) {
+            PsiStatement statement = statements[i];
             background.append(statement.getText());
         }
 
         // Check onProgressUpdate() method
-        StringBuilder progressUpdate = new StringBuilder();
-        background.append(extractHeavyTaskFromUIMethod(this.progressUpdate, progressUpdate));
-        this.refactoringMappings.put(this.progressUpdate, progressUpdate.toString());
-
+        checkUIMethod(background, this.progressUpdate);
         // Check onPostExecute() method
-        StringBuilder postExecute = new StringBuilder();
-        background.append(extractHeavyTaskFromUIMethod(this.postExecute, postExecute));
-        this.refactoringMappings.put(this.postExecute, postExecute.toString());
+        checkUIMethod(background, this.postExecute);
+
+        background.append(statements[lastStatementIndex].getText());
 
         background.append('}');
         this.refactoringMappings.put(this.background, background.toString());
     }
 
-    private String extractHeavyTaskFromUIMethod(PsiMethod uiMethod, StringBuilder sb) {
-        StringBuilder result = new StringBuilder();
+    private void checkUIMethod(StringBuilder background, PsiMethod uiMethod) {
         if (uiMethod == null) {
-            return null;
+            return;
         }
+        StringBuilder sb = new StringBuilder();
+        StringBuilder result = new StringBuilder();
 
         // Append uiMethod signature
         PsiType returnType = uiMethod.getReturnType();
         if (returnType == null) {
-            return null;
+            return;
         }
         appendSignature(uiMethod, sb, returnType);
         sb.append(" {");
 
         PsiCodeBlock body = uiMethod.getBody();
         if (body == null) {
-            return null;
+            return;
         }
         for (PsiStatement statement : body.getStatements()) {
             String text = statement.getText();
             if (this.allStatementsToRemove.contains(statement)) {
-                result.append(text);
+                // Add statement to background, replacing void "return;" with Object "return null;"
+                result.append(text.replace("return;", "return null;"));
             } else {
                 sb.append(text);
             }
         }
 
         sb.append('}');
-        return result.toString();
+        background.append(result.toString());
+        this.refactoringMappings.put(uiMethod, sb.toString());
     }
 
     private void appendSignature(PsiMethod method, StringBuilder sb, PsiType returnType) {

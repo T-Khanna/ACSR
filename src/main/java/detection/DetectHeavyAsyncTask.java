@@ -67,7 +67,7 @@ public class DetectHeavyAsyncTask {
     private static Set<PsiStatement> checkHeavyUIMethod(PsiMethod uiMethod) {
         // Check for statements where they are not involved in any UI method call. If they can be moved,
         // flag as HAS code smell.
-        AsyncTaskUIMethodVisitor visitor = new AsyncTaskUIMethodVisitor();
+        AsyncTaskUIMethodVisitor visitor = new AsyncTaskUIMethodVisitor(uiMethod.getParameterList().getParameters());
         uiMethod.accept(visitor);
         Set<PsiStatement> statementsToIgnore = visitor.getStatementsToIgnore();
         Set<PsiStatement> statementsToRemove = new LinkedHashSet<>();
