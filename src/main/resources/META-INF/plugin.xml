@@ -9,6 +9,8 @@
         IntelliJ inspections, or you can run the "Detect/Refactor Code Smells..." action across the entire project.
     </description>
 
+    <change-notes>This is the initial release of the plugin.</change-notes>
+
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
          on how to target different products -->
     <!-- uncomment to enable plugin in all products

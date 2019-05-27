@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'icl'
-version '1.0-SNAPSHOT'
+version '1.0'
 
 sourceCompatibility = 1.8
 
@@ -24,8 +24,4 @@ patchPluginXml {
     changeNotes """
       Add change notes here.<br>
       <em>most HTML tags may be used</em>"""
-}
-
-publishPlugin {
-    token TOKEN_ID
 }
