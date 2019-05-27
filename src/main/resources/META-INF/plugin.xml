@@ -1,12 +1,13 @@
 <idea-plugin>
     <id>code-smell-detector</id>
-    <name>Plugin display name here</name>
-    <vendor email="support@yourcompany.com" url="http://www.yourcompany.com">YourCompany</vendor>
+    <name>Automatic Android Code Smell Refactoring Tool</name>
+    <vendor email="khannatanmay85320@gmail.com">Tanmay Khanna</vendor>
 
-    <description><![CDATA[
-    Enter short description for your plugin here.<br>
-    <em>most HTML tags may be used</em>
-    ]]></description>
+    <description>
+        This plugin is a tool that provides the developer with the ability to automatically detect and
+        refactor Android-specific code smells in Android Studio. You can handle these code smells individually by
+        IntelliJ inspections, or you can run the "Detect/Refactor Code Smells..." action across the entire project.
+    </description>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
          on how to target different products -->
@@ -29,7 +30,7 @@
 
     <actions>
         <!-- Add your actions here -->
-        <action id="address-cs" class="actions.AddressCodeSmellsAction" text="Detect/Address Code Smells..."
+        <action id="address-cs" class="actions.AddressCodeSmellsAction" text="Detect/Refactor Code Smells..."
                 description="Analyze code, detect and refactor identified code smells">
             <add-to-group group-id="RefactoringMenu" anchor="last"/>
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt A"/>
