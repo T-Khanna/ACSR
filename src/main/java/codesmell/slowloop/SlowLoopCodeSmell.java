@@ -81,8 +81,7 @@ public class SlowLoopCodeSmell extends AbstractCodeSmell {
 
     private String getRefactoredCode() {
         StringBuilder result = new StringBuilder();
-        result.append("for ");
-        result.append(this.forStatement.getLParenth());
+        result.append("for (");
 
         String variableType;
         String variableName;
@@ -117,7 +116,7 @@ public class SlowLoopCodeSmell extends AbstractCodeSmell {
         result.append(variableName);
         result.append(" : ");
         result.append(referenceName);
-        result.append(this.forStatement.getRParenth());
+        result.append(')');
 
         PsiStatement body = this.forStatement.getBody();
         if (body instanceof PsiBlockStatement) {
