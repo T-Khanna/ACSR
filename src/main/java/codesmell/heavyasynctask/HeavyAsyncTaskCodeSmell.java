@@ -72,8 +72,6 @@ public class HeavyAsyncTaskCodeSmell extends AbstractCodeSmell {
             return;
         }
 
-        PsiReturnStatement lastStat = null;
-
         PsiStatement[] statements = body.getStatements();
         int lastStatementIndex = statements.length - 1;
         for (int i = 0; i < lastStatementIndex; i++) {
@@ -81,12 +79,36 @@ public class HeavyAsyncTaskCodeSmell extends AbstractCodeSmell {
             background.append(statement.getText());
         }
 
-        // Check onProgressUpdate() method
-        checkUIMethod(background, this.progressUpdate);
-        // Check onPostExecute() method
-        checkUIMethod(background, this.postExecute);
+        PsiStatement lastStat = statements[lastStatementIndex];
+        if (lastStat instanceof PsiTryStatement) {
+            PsiTryStatement tryStat = (PsiTryStatement) lastStat;
+            PsiCodeBlock tryBody = tryStat.getTryBlock();
+            if (tryBody != null) {
+                background.append("try {");
+                PsiStatement[] tryStatements = tryBody.getStatements();
+                int lastTryStatIndex = tryStatements.length - 1;
+                for (int i = 0; i < lastTryStatIndex; i++) {
+                    PsiStatement stat = tryStatements[i];
+                    background.append(stat.getText());
+                }
+                // Check onProgressUpdate() method
+                checkUIMethod(background, this.progressUpdate);
+                // Check onPostExecute() method
+                checkUIMethod(background, this.postExecute);
+                background.append(tryStatements[lastTryStatIndex].getText());
+                background.append("}");
+            }
+            for (PsiCatchSection catchSection : tryStat.getCatchSections()) {
+                background.append(catchSection.getText());
+            }
+        } else {
+            // Check onProgressUpdate() method
+            checkUIMethod(background, this.progressUpdate);
+            // Check onPostExecute() method
+            checkUIMethod(background, this.postExecute);
+            background.append(lastStat.getText());
+        }
 
-        background.append(statements[lastStatementIndex].getText());
 
         background.append('}');
         this.refactoringMappings.put(this.background, background.toString());

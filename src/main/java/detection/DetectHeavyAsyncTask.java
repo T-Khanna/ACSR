@@ -4,6 +4,7 @@ import codesmell.heavyasynctask.HeavyAsyncTaskCodeSmell;
 import com.intellij.psi.*;
 import com.intellij.psi.util.InheritanceUtil;
 import com.intellij.psi.util.MethodSignature;
+import com.intellij.psi.util.PsiUtil;
 import visitors.AsyncTaskUIMethodVisitor;
 
 import java.util.*;
@@ -15,7 +16,7 @@ public class DetectHeavyAsyncTask {
 
         // Need to check onPreExecute(), onProgressUpdate() and onPostExecute() methods
         String className = "android.os.AsyncTask";
-        if (!InheritanceUtil.isInheritor(classDec, className)) {
+        if (PsiUtil.isAbstractClass(classDec) || !InheritanceUtil.isInheritor(classDec, className)) {
             return null;
         }
 
@@ -33,16 +34,22 @@ public class DetectHeavyAsyncTask {
                     background = method;
                     break;
                 case "onPreExecute":
-                    preExecute = method;
                     updateUiMethods(heavyUiMethods, allStatementsToRemove, method);
+                    if (heavyUiMethods.contains(method)) {
+                        preExecute = method;
+                    }
                     break;
                 case "onProgressUpdate":
-                    progressUpdate = method;
                     updateUiMethods(heavyUiMethods, allStatementsToRemove, method);
+                    if (heavyUiMethods.contains(method)) {
+                        progressUpdate = method;
+                    }
                     break;
                 case "onPostExecute":
-                    postExecute = method;
                     updateUiMethods(heavyUiMethods, allStatementsToRemove, method);
+                    if (heavyUiMethods.contains(method)) {
+                        postExecute = method;
+                    }
                     break;
                 default:
                     // Method is not relevant to the code smell, so ignore it
