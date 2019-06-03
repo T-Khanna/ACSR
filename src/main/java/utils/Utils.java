@@ -1,5 +1,6 @@
 package utils;
 
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.*;
 import com.siyeh.ig.psiutils.CommentTracker;
@@ -25,6 +26,12 @@ public class Utils {
                 ct.replaceAndRestoreComments(element, newElement);
             }
         }
+    }
+
+    public static void runOnBackgroundThread(Runnable task) {
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            ApplicationManager.getApplication().runReadAction(task);
+        });
     }
 
 }

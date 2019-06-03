@@ -15,13 +15,13 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.indexing.FileBasedIndex;
 import org.jetbrains.annotations.NotNull;
 import utils.Constants;
+import utils.Utils;
 import visitors.SourceCodeVisitor;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class AddressCodeSmellsAction extends AnAction {
-
     @Override
     public void actionPerformed(AnActionEvent e) {
         // Get all the required data from data keys
@@ -32,58 +32,60 @@ public class AddressCodeSmellsAction extends AnAction {
             return;
         }
 
-        PsiManager psiManager = PsiManager.getInstance(project);
-        List<PsiFile> files = FileBasedIndex.getInstance()
-                .getContainingFiles(FileTypeIndex.NAME, JavaFileType.INSTANCE, GlobalSearchScope.projectScope(project))
-                .stream()
-                .map(psiManager::findFile)
-                .collect(Collectors.toList());
+        Utils.runOnBackgroundThread(() -> {
+            PsiManager psiManager = PsiManager.getInstance(project);
+            List<PsiFile> files = FileBasedIndex.getInstance()
+                    .getContainingFiles(FileTypeIndex.NAME, JavaFileType.INSTANCE, GlobalSearchScope.projectScope(project))
+                    .stream()
+                    .map(psiManager::findFile)
+                    .collect(Collectors.toList());
 
-        Map<PsiFile, Set<CodeSmell>> identifiedCodeSmells = new HashMap<>();
+            Map<PsiFile, Set<CodeSmell>> identifiedCodeSmells = new HashMap<>();
 
-        for (PsiFile psiFile : files) {
-            if (psiFile == null) {
-                continue;
+            for (PsiFile psiFile : files) {
+                if (psiFile == null) {
+                    continue;
+                }
+                SourceCodeVisitor sourceCodeVisitor = new SourceCodeVisitor();
+                psiFile.accept(sourceCodeVisitor);
+                Set<CodeSmell> codeSmells = sourceCodeVisitor.getIdentifiedCodeSmells();
+                if (!codeSmells.isEmpty()) {
+                    identifiedCodeSmells.put(psiFile, codeSmells);
+                }
             }
-            SourceCodeVisitor sourceCodeVisitor = new SourceCodeVisitor();
-            psiFile.accept(sourceCodeVisitor);
-            Set<CodeSmell> codeSmells = sourceCodeVisitor.getIdentifiedCodeSmells();
-            if (!codeSmells.isEmpty()) {
-                identifiedCodeSmells.put(psiFile, codeSmells);
+
+            int fileCount = 0;
+            int smellCount = 0;
+
+            List<CodeSmell> allCodeSmells = new LinkedList<>();
+
+            for (Map.Entry<PsiFile, Set<CodeSmell>> entry : identifiedCodeSmells.entrySet()) {
+                PsiFile psiFile = entry.getKey();
+                Set<CodeSmell> codeSmells = entry.getValue();
+                for (CodeSmell codeSmell : codeSmells) {
+                    NotificationGroup notifier = new NotificationGroup("acsr", NotificationDisplayType.BALLOON, true);
+                    notifier.createNotification(
+                            "Code Smell in file " + psiFile.getName(),
+                            codeSmell.getInformativeMessage(psiFile),
+                            NotificationType.INFORMATION,
+                            new AutoRefactorListener(project, codeSmell)
+                    ).notify(project);
+                    allCodeSmells.add(codeSmell);
+                    smellCount++;
+                }
+                fileCount++;
             }
-        }
 
-        int fileCount = 0;
-        int smellCount = 0;
-
-        List<CodeSmell> allCodeSmells = new LinkedList<>();
-
-        for (Map.Entry<PsiFile, Set<CodeSmell>> entry : identifiedCodeSmells.entrySet()) {
-            PsiFile psiFile = entry.getKey();
-            Set<CodeSmell> codeSmells = entry.getValue();
-            for (CodeSmell codeSmell : codeSmells) {
-                NotificationGroup notifier = new NotificationGroup("acsr", NotificationDisplayType.BALLOON, true);
-                notifier.createNotification(
-                        "Code Smell in file " + psiFile.getName(),
-                        codeSmell.getInformativeMessage(psiFile),
-                        NotificationType.INFORMATION,
-                        new AutoRefactorListener(project, codeSmell)
-                ).notify(project);
-                allCodeSmells.add(codeSmell);
-                smellCount++;
-            }
-            fileCount++;
-        }
-
-        NotificationGroup notifier = new NotificationGroup("acsr", NotificationDisplayType.BALLOON, true);
-        notifier.createNotification(
-                getTitle(fileCount, smellCount),
-                getContent(),
-                NotificationType.INFORMATION,
-                new AutoRefactorListener(project, allCodeSmells)
-        ).notify(project);
-
+            NotificationGroup notifier = new NotificationGroup("acsr", NotificationDisplayType.BALLOON, true);
+            notifier.createNotification(
+                    getTitle(fileCount, smellCount),
+                    getContent(),
+                    NotificationType.INFORMATION,
+                    new AutoRefactorListener(project, allCodeSmells)
+            ).notify(project);
+        });
     }
+
 
     @NotNull
     private String getContent() {
